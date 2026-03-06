@@ -116,8 +116,8 @@ export const NavigationSheet = ({
                   <div className="flex items-start gap-2">
                     <Sparkles className="mt-0.5 h-4 w-4 text-blue-500" />
                     <p className="text-xs text-muted-foreground">
-                      Experimental satnav uses live location and a free routing engine for a simple,
-                      clean route preview.
+                      Experimental satnav computes a lightweight route locally in your browser for a
+                      smooth, simple preview that behaves consistently in production.
                     </p>
                   </div>
                   <Button
@@ -153,7 +153,7 @@ export const NavigationSheet = ({
                 <div>
                   <p className="text-sm font-semibold text-card-foreground">Building route</p>
                   <p className="text-xs text-muted-foreground">
-                    Finding a simple driving path to your selected station
+                    Sketching a lightweight driving path to your selected station
                   </p>
                 </div>
               </div>
@@ -187,7 +187,7 @@ export const NavigationSheet = ({
                 <div className="border-b border-border/50 px-4 py-3">
                   <p className="text-sm font-semibold text-card-foreground">Turn-by-turn</p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Experimental guidance generated from the mapped route
+                    Experimental local guidance generated from the route preview
                   </p>
                 </div>
                 <div className="max-h-[46vh] space-y-1 overflow-y-auto p-3">

@@ -13,6 +13,7 @@ import { DonatePopup } from "@/components/donate-popup";
 import type { RouteData, StationWithPrices } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Navigation, Sparkles, X } from "lucide-react";
+import { buildLocalRoute } from "@/lib/local-satnav";
 
 const HomePage = () => {
   const [activeTab, setActiveTab] = useState<TabId>("map");
@@ -101,22 +102,8 @@ const HomePage = () => {
 
     try {
       const currentLocation = await getCurrentLocation();
-      const params = new URLSearchParams({
-        fromLat: currentLocation.lat.toString(),
-        fromLng: currentLocation.lng.toString(),
-        toLat: selectedStation.lat.toString(),
-        toLng: selectedStation.lng.toString(),
-        stationId: selectedStation.id,
-      });
-
-      const response = await fetch(`/api/route?${params}`);
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error ?? "Failed to build route");
-      }
-
-      setActiveRoute(data satisfies RouteData);
+      const route = buildLocalRoute(currentLocation, selectedStation);
+      setActiveRoute(route satisfies RouteData);
     } catch (error) {
       setRouteError(error instanceof Error ? error.message : "Failed to build route");
       setActiveRoute(null);
@@ -146,7 +133,7 @@ const HomePage = () => {
                   </span>
                 </div>
                 <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                  Full satnav with animated route mapping and simple turn-by-turn directions
+                  Experimental local satnav with smooth route preview and simple turn-by-turn guidance
                 </p>
               </div>
               <button
@@ -161,7 +148,7 @@ const HomePage = () => {
             <div className="mt-4 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Sparkles className="h-3.5 w-3.5 text-blue-500" />
-                <span>Simple live route preview</span>
+                <span>Browser-computed route, Vercel-safe</span>
               </div>
               <Button onClick={handleStartRoute} size="sm" className="rounded-xl">
                 <Navigation className="mr-2 h-4 w-4" />
