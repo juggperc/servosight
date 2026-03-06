@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#0a0a0a"/>
+  <text x="256" y="200" font-family="system-ui, -apple-system, sans-serif" font-size="100" font-weight="800" fill="#ffffff" text-anchor="middle" dominant-baseline="middle">SERVO</text>
+  <text x="256" y="310" font-family="system-ui, -apple-system, sans-serif" font-size="100" font-weight="800" fill="#22c55e" text-anchor="middle" dominant-baseline="middle">SIGHT</text>
+  <circle cx="256" cy="410" r="30" fill="none" stroke="#ffffff" stroke-width="6"/>
+  <circle cx="256" cy="410" r="10" fill="#22c55e"/>
+  <line x1="256" y1="380" x2="256" y2="365" stroke="#ffffff" stroke-width="6" stroke-linecap="round"/>
+</svg>
