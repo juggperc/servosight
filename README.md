@@ -65,13 +65,9 @@ To enable live data:
 3. The app automatically fetches and caches data (reference data every 24h, prices every 60 min)
 4. Budget: ~750 API calls/month, well under the 2,500 limit
 
-When the API is unavailable, the app falls back to seed data.
+ServoSight is now live-data only for NSW/TAS stations from the government feed, with user-reported price updates layered on top.
 
 For Vercel deployment, add `NSW_FUEL_API_KEY` and `NSW_FUEL_API_SECRET` as environment variables in your project settings.
-
-### Seed Data (Fallback)
-
-For non-NSW states and when the API is unavailable, the app uses ~40 seed stations across Sydney, Melbourne, Brisbane, Perth, Adelaide, Canberra, Gold Coast, Darwin, and Hobart.
 
 ### Diagnostic Endpoint
 

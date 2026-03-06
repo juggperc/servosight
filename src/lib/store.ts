@@ -1,25 +1,19 @@
 import type { Station, PriceReport, FuelTypeId, StationWithPrices } from "@/lib/types";
-import { SEED_STATIONS, generateSeedPrices } from "@/lib/data/stations";
 import { haversineDistance } from "@/lib/utils";
 import {
-  fetchReferenceData,
-  fetchAllPrices,
+  fetchPricesBundle,
   mapNswFuelCode,
   type NswStation,
 } from "@/lib/nsw-fuel-api";
-
-// Full seed data as fallback
-const allSeedStations: Station[] = [...SEED_STATIONS];
-const allSeedPrices: PriceReport[] = generateSeedPrices();
 
 // User-submitted prices overlay
 let userPriceReports: PriceReport[] = [];
 
 // Cached converted NSW live data
-let nswLiveStations: Station[] = [];
-let nswPricesMap: Map<string, { fuelType: FuelTypeId; price: number; reportedAt: string }[]> = new Map();
+let liveStations: Station[] = [];
+let livePricesMap: Map<string, { fuelType: FuelTypeId; price: number; reportedAt: string }[]> = new Map();
 let lastNswSync = 0;
-let nswLiveAvailable = false;
+let liveDataAvailable = false;
 
 const NSW_SYNC_INTERVAL_MS = 60 * 60 * 1000;
 
@@ -48,29 +42,27 @@ const syncNswData = async (): Promise<void> => {
   const now = Date.now();
   if (now - lastNswSync < NSW_SYNC_INTERVAL_MS) return;
 
-  const [refData, prices] = await Promise.all([
-    fetchReferenceData(),
-    fetchAllPrices(),
-  ]);
+  const bundle = await fetchPricesBundle();
 
-  if (!refData?.stations?.stations || prices.length === 0) {
+  if (!bundle?.stations?.length || !bundle.prices?.length) {
     lastNswSync = now;
     return;
   }
 
   const stationMap = new Map<string, Station>();
-  for (const s of refData.stations.stations) {
-    stationMap.set(s.code, convertNswStation(s));
+  for (const s of bundle.stations) {
+    stationMap.set(String(s.code), convertNswStation(s));
   }
 
   const pMap = new Map<string, { fuelType: FuelTypeId; price: number; reportedAt: string }[]>();
 
-  for (const p of prices) {
+  for (const p of bundle.prices) {
     const fuelType = mapNswFuelCode(p.fueltype);
     if (!fuelType) continue;
 
-    const stationKey = `nsw-${p.stationcode}`;
-    const station = stationMap.get(p.stationcode);
+    const stationCode = String(p.stationcode);
+    const stationKey = `nsw-${stationCode}`;
+    const station = stationMap.get(stationCode);
     if (station && !station.fuelTypes.includes(fuelType)) {
       station.fuelTypes.push(fuelType);
     }
@@ -84,29 +76,19 @@ const syncNswData = async (): Promise<void> => {
     pMap.set(stationKey, existing);
   }
 
-  nswLiveStations = Array.from(stationMap.values()).filter((s) => s.fuelTypes.length > 0);
-  nswPricesMap = pMap;
-  nswLiveAvailable = nswLiveStations.length > 0;
+  liveStations = Array.from(stationMap.values()).filter((s) => s.fuelTypes.length > 0);
+  livePricesMap = pMap;
+  liveDataAvailable = liveStations.length > 0;
   lastNswSync = now;
 
-  console.log(`[Store] NSW live sync: ${nswLiveStations.length} stations, ${prices.length} prices`);
+  console.log(`[Store] NSW live sync: ${liveStations.length} stations, ${bundle.prices.length} prices`);
 };
 
 // ── Public API ──
 
 const getAllStations = async (): Promise<Station[]> => {
   await syncNswData();
-
-  if (nswLiveAvailable) {
-    // Live NSW data + seed for non-NSW/TAS states
-    const nonLiveSeeds = allSeedStations.filter(
-      (s) => s.state !== "NSW" && s.state !== "TAS"
-    );
-    return [...nswLiveStations, ...nonLiveSeeds];
-  }
-
-  // No live data — use all seed stations
-  return allSeedStations;
+  return liveStations;
 };
 
 export const getStation = async (id: string): Promise<Station | undefined> => {
@@ -114,27 +96,17 @@ export const getStation = async (id: string): Promise<Station | undefined> => {
   return all.find((s) => s.id === id);
 };
 
-const getLatestPrices = (stationId: string): Record<FuelTypeId, { price: number; reportedAt: string } | undefined> => {
+const getLatestPrices = (
+  stationId: string
+): Record<FuelTypeId, { price: number; reportedAt: string } | undefined> => {
   const latest: Record<string, { price: number; reportedAt: string } | undefined> = {};
 
-  // NSW live prices
-  const nswPrices = nswPricesMap.get(stationId);
-  if (nswPrices) {
-    for (const p of nswPrices) {
+  const stationPrices = livePricesMap.get(stationId);
+  if (stationPrices) {
+    for (const p of stationPrices) {
       if (!latest[p.fuelType] || new Date(p.reportedAt) > new Date(latest[p.fuelType]!.reportedAt)) {
         latest[p.fuelType] = { price: p.price, reportedAt: p.reportedAt };
       }
-    }
-  }
-
-  // Seed prices fallback
-  const seedStationPrices = allSeedPrices
-    .filter((p) => p.stationId === stationId)
-    .sort((a, b) => new Date(b.reportedAt).getTime() - new Date(a.reportedAt).getTime());
-
-  for (const report of seedStationPrices) {
-    if (!latest[report.fuelType]) {
-      latest[report.fuelType] = { price: report.price, reportedAt: report.reportedAt };
     }
   }
 
@@ -216,4 +188,4 @@ export const getBestDeals = async (
     .slice(0, 20);
 };
 
-export const isLiveDataAvailable = (): boolean => nswLiveAvailable;
+export const isLiveDataAvailable = (): boolean => liveDataAvailable;
