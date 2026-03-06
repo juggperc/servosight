@@ -51,6 +51,9 @@ export type RouteStep = {
   instruction: string;
   distance: number;
   duration: number;
+  location: { lat: number; lng: number };
+  roadName?: string;
+  maneuverType?: string;
 };
 
 export type RouteData = {

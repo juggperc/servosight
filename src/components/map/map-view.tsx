@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { CircleMarker, MapContainer, Polyline, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -20,6 +20,7 @@ const DEFAULT_ZOOM = 5;
 type MapViewProps = {
   onStationSelect?: (station: StationWithPrices) => void;
   activeRoute?: RouteData | null;
+  navLocation?: { lat: number; lng: number } | null;
 };
 
 const ThemeTileLayer = () => {
@@ -88,7 +89,7 @@ const RouteOverlay = ({ route }: { route: RouteData }) => {
   );
 };
 
-export const MapView = ({ onStationSelect, activeRoute }: MapViewProps) => {
+export const MapView = ({ onStationSelect, activeRoute, navLocation }: MapViewProps) => {
   const [stations, setStations] = useState<StationWithPrices[]>([]);
   const [selectedFuel, setSelectedFuel] = useState<FuelTypeId>("u91");
   const [showHydrogen, setShowHydrogen] = useState(false);
@@ -96,33 +97,49 @@ export const MapView = ({ onStationSelect, activeRoute }: MapViewProps) => {
   const [flyTo, setFlyTo] = useState<{ lat: number; lng: number } | null>(null);
   const [dataSource, setDataSource] = useState<"loading" | "live" | "unavailable">("loading");
 
-  const fetchStations = useCallback(async () => {
-    const params = new URLSearchParams({ fuelType: selectedFuel });
-    if (showHydrogen) params.set("hasHydrogen", "true");
-    if (showEv) params.set("hasEv", "true");
+  const fetchStations = useCallback(
+    async (signal?: AbortSignal) => {
+      const params = new URLSearchParams({ fuelType: selectedFuel });
+      if (showHydrogen) params.set("hasHydrogen", "true");
+      if (showEv) params.set("hasEv", "true");
 
-    const res = await fetch(`/api/stations?${params}`);
-    if (res.ok) {
-      const data = await res.json();
-      setStations(data);
-      setDataSource(data.length > 0 ? "live" : "unavailable");
-    }
-  }, [selectedFuel, showHydrogen, showEv]);
+      try {
+        const res = await fetch(`/api/stations?${params}`, { signal });
+        if (res.ok) {
+          const data = await res.json();
+          setStations(data);
+          setDataSource(data.length > 0 ? "live" : "unavailable");
+        }
+      } catch {
+        if (!signal?.aborted) {
+          setDataSource("unavailable");
+        }
+      }
+    },
+    [selectedFuel, showHydrogen, showEv]
+  );
 
   useEffect(() => {
-    fetchStations();
+    const controller = new AbortController();
+    fetchStations(controller.signal);
+    return () => controller.abort();
   }, [fetchStations]);
 
   const handleLocate = useCallback((lat: number, lng: number) => {
     setFlyTo({ lat, lng });
   }, []);
 
-  const allPrices = stations
-    .map((s) => s.cheapestPrice)
-    .filter((p): p is number => p !== undefined);
-  allPrices.sort((a, b) => a - b);
-  const p33 = allPrices[Math.floor(allPrices.length * 0.33)] ?? 0;
-  const p66 = allPrices[Math.floor(allPrices.length * 0.66)] ?? Infinity;
+  const { p33, p66 } = useMemo(() => {
+    const allPrices = stations
+      .map((s) => s.cheapestPrice)
+      .filter((p): p is number => p !== undefined)
+      .sort((a, b) => a - b);
+
+    return {
+      p33: allPrices[Math.floor(allPrices.length * 0.33)] ?? 0,
+      p66: allPrices[Math.floor(allPrices.length * 0.66)] ?? Infinity,
+    };
+  }, [stations]);
 
   return (
     <div className="relative h-full w-full">
@@ -148,6 +165,18 @@ export const MapView = ({ onStationSelect, activeRoute }: MapViewProps) => {
 
         {flyTo && <FlyToLocation lat={flyTo.lat} lng={flyTo.lng} />}
         {activeRoute && <RouteOverlay route={activeRoute} />}
+        {navLocation && (
+          <CircleMarker
+            center={[navLocation.lat, navLocation.lng]}
+            radius={8}
+            pathOptions={{
+              color: "#ffffff",
+              weight: 3,
+              fillColor: "#2563eb",
+              fillOpacity: 1,
+            }}
+          />
+        )}
       </MapContainer>
 
       <FuelFilter

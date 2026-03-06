@@ -28,8 +28,15 @@ const MapView = dynamic(() => import("./map-view").then((mod) => mod.MapView), {
 type DynamicMapProps = {
   onStationSelect?: (station: StationWithPrices) => void;
   activeRoute?: RouteData | null;
+  navLocation?: { lat: number; lng: number } | null;
 };
 
-export const DynamicMap = ({ onStationSelect, activeRoute }: DynamicMapProps) => {
-  return <MapView onStationSelect={onStationSelect} activeRoute={activeRoute} />;
+export const DynamicMap = ({ onStationSelect, activeRoute, navLocation }: DynamicMapProps) => {
+  return (
+    <MapView
+      onStationSelect={onStationSelect}
+      activeRoute={activeRoute}
+      navLocation={navLocation}
+    />
+  );
 };

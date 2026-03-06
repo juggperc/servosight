@@ -25,6 +25,7 @@ type NavigationSheetProps = {
   onOpenChange: (open: boolean) => void;
   station: StationWithPrices | null;
   route: RouteData | null;
+  currentStepIndex: number;
   routing: boolean;
   routeError: string | null;
   onStartRoute: () => void;
@@ -53,6 +54,7 @@ export const NavigationSheet = ({
   onOpenChange,
   station,
   route,
+  currentStepIndex,
   routing,
   routeError,
   onStartRoute,
@@ -162,6 +164,19 @@ export const NavigationSheet = ({
 
           {route && (
             <>
+              <div className="rounded-2xl border border-blue-500/15 bg-blue-500/6 p-4 shadow-sm">
+                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-400">
+                  <Navigation className="h-4 w-4" />
+                  Next move
+                </div>
+                <p className="mt-2 text-base font-semibold tracking-tight text-card-foreground">
+                  {route.steps[currentStepIndex]?.instruction}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Stay on route and the next turn will update automatically.
+                </p>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
                   <div className="flex items-center gap-2 text-muted-foreground">
@@ -187,7 +202,7 @@ export const NavigationSheet = ({
                 <div className="border-b border-border/50 px-4 py-3">
                   <p className="text-sm font-semibold text-card-foreground">Turn-by-turn</p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Experimental local guidance generated from the route preview
+                    Real browser-side route guidance with live step progress
                   </p>
                 </div>
                 <div className="max-h-[46vh] space-y-1 overflow-y-auto p-3">
@@ -196,12 +211,16 @@ export const NavigationSheet = ({
                       key={`${step.instruction}-${index}`}
                       className={cn(
                         "animate-fade-in-up flex items-start gap-3 rounded-2xl px-3 py-3 transition-colors",
-                        index === 0 ? "bg-blue-500/5 ring-1 ring-blue-500/10" : "hover:bg-muted/40"
+                        index === currentStepIndex
+                          ? "bg-blue-500/8 ring-1 ring-blue-500/20"
+                          : index < currentStepIndex
+                            ? "opacity-55"
+                            : "hover:bg-muted/40"
                       )}
                       style={{ animationDelay: `${index * 30}ms`, animationFillMode: "backwards" }}
                     >
                       <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-foreground/6 text-[11px] font-semibold text-foreground">
-                        {index + 1}
+                        {index < currentStepIndex ? "✓" : index + 1}
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-card-foreground">{step.instruction}</p>

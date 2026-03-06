@@ -74,6 +74,8 @@ const createSteps = (
       instruction: `Head ${heading}`,
       distance: Math.max(250, Math.round(distanceKm * 1000 * 0.18)),
       duration: Math.max(40, Math.round(durationSeconds * 0.18)),
+      location: interpolatePoint(from, destination, 0.18),
+      maneuverType: "depart",
     },
   ];
 
@@ -82,6 +84,9 @@ const createSteps = (
       instruction: `Continue toward ${station.suburb || station.state}`,
       distance: Math.max(400, halfwayMeters),
       duration: Math.max(60, Math.round(durationSeconds * 0.56)),
+      location: interpolatePoint(from, destination, 0.58),
+      roadName: station.suburb || station.state,
+      maneuverType: "continue",
     });
   }
 
@@ -89,6 +94,9 @@ const createSteps = (
     instruction: `Arrive at ${station.name}`,
     distance: Math.max(120, Math.round(distanceKm * 1000 * 0.14)),
     duration: Math.max(20, Math.round(durationSeconds * 0.14)),
+      location: destination,
+      roadName: station.name,
+      maneuverType: "arrive",
   });
 
   return steps;

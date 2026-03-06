@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { DynamicMap } from "@/components/map/dynamic-map";
 import { BottomNav, type TabId } from "@/components/navigation/bottom-nav";
 import { SubmitSheet } from "@/components/sheets/submit-sheet";
@@ -12,8 +12,8 @@ import { IOSPrompt } from "@/components/onboarding/ios-prompt";
 import { DonatePopup } from "@/components/donate-popup";
 import type { RouteData, StationWithPrices } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { Navigation, Sparkles, X } from "lucide-react";
-import { buildLocalRoute } from "@/lib/local-satnav";
+import { ArrowRight, Navigation, Sparkles, X } from "lucide-react";
+import { fetchBrowserRoute, getActiveStepIndex } from "@/lib/browser-route";
 
 const HomePage = () => {
   const [activeTab, setActiveTab] = useState<TabId>("map");
@@ -26,6 +26,9 @@ const HomePage = () => {
   const [activeRoute, setActiveRoute] = useState<RouteData | null>(null);
   const [routing, setRouting] = useState(false);
   const [routeError, setRouteError] = useState<string | null>(null);
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [navLocation, setNavLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const routeAbortRef = useRef<AbortController | null>(null);
 
   const handleTabChange = useCallback((tab: TabId) => {
     setActiveTab(tab);
@@ -88,9 +91,12 @@ const HomePage = () => {
   }, []);
 
   const handleClearRoute = useCallback(() => {
+    routeAbortRef.current?.abort();
     setActiveRoute(null);
     setRouteError(null);
     setNavigationOpen(false);
+    setCurrentStepIndex(0);
+    setNavLocation(null);
   }, []);
 
   const handleStartRoute = useCallback(async () => {
@@ -99,10 +105,18 @@ const HomePage = () => {
     setRouting(true);
     setRouteError(null);
     setNavigationOpen(true);
+    routeAbortRef.current?.abort();
+    routeAbortRef.current = new AbortController();
 
     try {
       const currentLocation = await getCurrentLocation();
-      const route = buildLocalRoute(currentLocation, selectedStation);
+      setNavLocation(currentLocation);
+      const route = await fetchBrowserRoute(
+        currentLocation,
+        selectedStation,
+        routeAbortRef.current.signal
+      );
+      setCurrentStepIndex(0);
       setActiveRoute(route satisfies RouteData);
     } catch (error) {
       setRouteError(error instanceof Error ? error.message : "Failed to build route");
@@ -112,17 +126,63 @@ const HomePage = () => {
     }
   }, [getCurrentLocation, selectedStation]);
 
+  useEffect(() => {
+    if (!navigationOpen || !activeRoute) return undefined;
+    if (!navigator.geolocation) return undefined;
+
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const nextPosition = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+        setNavLocation(nextPosition);
+        setCurrentStepIndex((previous) =>
+          getActiveStepIndex(nextPosition, activeRoute, previous)
+        );
+      },
+      () => undefined,
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [navigationOpen, activeRoute]);
+
+  const currentStep = activeRoute?.steps[currentStepIndex] ?? null;
+
   return (
     <main className="fixed inset-0 overflow-hidden">
       <div className="h-full w-full md:pl-20">
         <DynamicMap
           onStationSelect={setSelectedStation}
           activeRoute={activeRoute}
+          navLocation={navLocation}
         />
       </div>
 
+      {activeRoute && currentStep && (
+        <div className="pointer-events-none absolute inset-x-4 top-4 z-[1700] mx-auto max-w-md animate-fade-in-up md:left-24 md:right-auto md:top-6">
+          <div className="rounded-3xl border border-border/60 bg-background/92 px-4 py-3 shadow-xl backdrop-blur-xl">
+            <div className="flex items-center gap-2">
+              <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-400">
+                Turn by turn
+              </span>
+              <span className="text-[10px] font-medium text-muted-foreground">
+                Step {Math.min(currentStepIndex + 1, activeRoute.steps.length)}/{activeRoute.steps.length}
+              </span>
+            </div>
+            <p className="mt-2 text-sm font-semibold text-foreground">{currentStep.instruction}</p>
+            <div className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <span>{Math.max(10, Math.round(currentStep.distance))} m</span>
+              <ArrowRight className="h-3 w-3" />
+              <span>{Math.max(1, Math.round(currentStep.duration / 60))} min</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {selectedStation && !navigationOpen && (
-        <div className="absolute inset-x-4 bottom-24 z-[1600] mx-auto max-w-md animate-fade-in-up md:bottom-6 md:left-24 md:right-auto">
+        <div className="absolute inset-x-3 bottom-24 z-[1600] mx-auto max-w-md animate-fade-in-up md:bottom-6 md:left-24 md:right-auto">
           <div className="rounded-3xl border border-border/60 bg-background/92 p-4 shadow-xl backdrop-blur-xl">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -133,7 +193,7 @@ const HomePage = () => {
                   </span>
                 </div>
                 <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                  Experimental local satnav with smooth route preview and simple turn-by-turn guidance
+                  Experimental browser-side satnav with real turn-by-turn routing and a smooth route preview
                 </p>
               </div>
               <button
@@ -148,7 +208,7 @@ const HomePage = () => {
             <div className="mt-4 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Sparkles className="h-3.5 w-3.5 text-blue-500" />
-                <span>Browser-computed route, Vercel-safe</span>
+                <span>Browser-routed, Vercel-safe</span>
               </div>
               <Button onClick={handleStartRoute} size="sm" className="rounded-xl">
                 <Navigation className="mr-2 h-4 w-4" />
@@ -172,10 +232,13 @@ const HomePage = () => {
           if (!open) {
             setActiveRoute(null);
             setRouteError(null);
+            setCurrentStepIndex(0);
+            setNavLocation(null);
           }
         }}
         station={selectedStation}
         route={activeRoute}
+        currentStepIndex={currentStepIndex}
         routing={routing}
         routeError={routeError}
         onStartRoute={handleStartRoute}
