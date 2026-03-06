@@ -46,3 +46,19 @@ export type StationWithPrices = Station & {
   cheapestPrice?: number;
   distance?: number;
 };
+
+export type RouteStep = {
+  instruction: string;
+  distance: number;
+  duration: number;
+};
+
+export type RouteData = {
+  destinationStationId: string;
+  origin: { lat: number; lng: number };
+  destination: { lat: number; lng: number };
+  geometry: [number, number][];
+  distance: number;
+  duration: number;
+  steps: RouteStep[];
+};

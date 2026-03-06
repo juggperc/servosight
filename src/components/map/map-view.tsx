@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { MapContainer, TileLayer, useMap } from "react-leaflet";
+import { CircleMarker, MapContainer, Polyline, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useTheme } from "next-themes";
-import type { StationWithPrices, FuelTypeId } from "@/lib/types";
+import type { RouteData, StationWithPrices, FuelTypeId } from "@/lib/types";
 import { StationMarker } from "./station-marker";
 import { LocateButton } from "./locate-button";
 import { FuelFilter } from "./fuel-filter";
@@ -19,6 +19,7 @@ const DEFAULT_ZOOM = 5;
 
 type MapViewProps = {
   onStationSelect?: (station: StationWithPrices) => void;
+  activeRoute?: RouteData | null;
 };
 
 const ThemeTileLayer = () => {
@@ -36,7 +37,58 @@ const FlyToLocation = ({ lat, lng }: { lat: number; lng: number }) => {
   return null;
 };
 
-export const MapView = ({ onStationSelect }: MapViewProps) => {
+const RouteOverlay = ({ route }: { route: RouteData }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!route.geometry.length) return;
+    const bounds = L.latLngBounds(route.geometry);
+    map.fitBounds(bounds, {
+      padding: [48, 48],
+      animate: true,
+      duration: 1.2,
+    });
+  }, [map, route]);
+
+  return (
+    <>
+      <Polyline
+        positions={route.geometry}
+        pathOptions={{
+          color: "#0f172a",
+          weight: 10,
+          opacity: 0.12,
+          lineCap: "round",
+          lineJoin: "round",
+        }}
+      />
+      <Polyline
+        positions={route.geometry}
+        pathOptions={{
+          color: "#3b82f6",
+          weight: 6,
+          opacity: 0.95,
+          lineCap: "round",
+          lineJoin: "round",
+          dashArray: "14 12",
+          className: "route-line-animated",
+        }}
+      />
+      <CircleMarker
+        center={[route.origin.lat, route.origin.lng]}
+        radius={7}
+        pathOptions={{ color: "#ffffff", weight: 2, fillColor: "#2563eb", fillOpacity: 1 }}
+      />
+      <CircleMarker
+        center={[route.destination.lat, route.destination.lng]}
+        radius={8}
+        pathOptions={{ color: "#ffffff", weight: 2, fillColor: "#111827", fillOpacity: 1 }}
+      />
+    </>
+  );
+};
+
+export const MapView = ({ onStationSelect, activeRoute }: MapViewProps) => {
   const [stations, setStations] = useState<StationWithPrices[]>([]);
   const [selectedFuel, setSelectedFuel] = useState<FuelTypeId>("u91");
   const [showHydrogen, setShowHydrogen] = useState(false);
@@ -95,6 +147,7 @@ export const MapView = ({ onStationSelect }: MapViewProps) => {
         ))}
 
         {flyTo && <FlyToLocation lat={flyTo.lat} lng={flyTo.lng} />}
+        {activeRoute && <RouteOverlay route={activeRoute} />}
       </MapContainer>
 
       <FuelFilter
