@@ -3,6 +3,7 @@ import { getNswApiStatus } from "@/lib/nsw-fuel-api";
 import { isLiveDataAvailable } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export const GET = () => {
   const api = getNswApiStatus();

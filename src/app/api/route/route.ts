@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { RouteData, RouteStep } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 type OsrmStep = {
   distance?: number;

@@ -3,6 +3,8 @@ import { addPriceReport, getStation } from "@/lib/store";
 import { FUEL_TYPES } from "@/lib/data/fuel-types";
 import type { FuelTypeId } from "@/lib/types";
 
+export const runtime = "nodejs";
+
 export const POST = async (request: NextRequest) => {
   try {
     const body = await request.json();

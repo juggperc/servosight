@@ -102,6 +102,7 @@ const getAccessToken = async (): Promise<string | null> => {
   try {
     const res = await fetch(TOKEN_URL, {
       method: "GET",
+      cache: "no-store",
       headers: {
         Authorization: `Basic ${basic}`,
       },
@@ -133,7 +134,10 @@ const getAccessToken = async (): Promise<string | null> => {
 };
 
 const buildRequestTimestamp = (): string => {
-  return new Intl.DateTimeFormat("en-AU", {
+  // Use explicit Sydney time so serverless environments outside Australia
+  // still generate the exact timestamp shape the NSW gateway accepts.
+  const parts = new Intl.DateTimeFormat("en-AU", {
+    timeZone: "Australia/Sydney",
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -141,9 +145,11 @@ const buildRequestTimestamp = (): string => {
     minute: "2-digit",
     second: "2-digit",
     hour12: true,
-  })
-    .format(new Date())
-    .replace(",", "");
+  }).formatToParts(new Date());
+
+  const getPart = (type: string) => parts.find((part) => part.type === type)?.value ?? "";
+
+  return `${getPart("day")}/${getPart("month")}/${getPart("year")} ${getPart("hour")}:${getPart("minute")}:${getPart("second")} ${getPart("dayPeriod").toUpperCase()}`;
 };
 
 const apiGet = async (url: string): Promise<Response | null> => {
@@ -158,6 +164,7 @@ const apiGet = async (url: string): Promise<Response | null> => {
   try {
     const creds = getApiCredentials();
     const res = await fetch(url, {
+      cache: "no-store",
       headers: {
         Authorization: `Bearer ${token}`,
         apikey: creds!.key,
@@ -170,7 +177,11 @@ const apiGet = async (url: string): Promise<Response | null> => {
     incrementCallCount();
 
     if (!res.ok) {
-      console.error(`[NSW API] ${url}: ${res.status} ${res.statusText}`);
+      const body = await res.text().catch(() => "");
+      console.error(
+        `[NSW API] ${url}: ${res.status} ${res.statusText}`,
+        body.slice(0, 200)
+      );
       return null;
     }
 

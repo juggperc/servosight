@@ -3,6 +3,7 @@ import { queryStations } from "@/lib/store";
 import type { FuelTypeId } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export const GET = async (request: NextRequest) => {
   const { searchParams } = request.nextUrl;

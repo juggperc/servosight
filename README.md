@@ -62,7 +62,7 @@ To enable live data:
 
 1. Sign up at [api.nsw.gov.au](https://api.nsw.gov.au) and subscribe to the Fuel API (free tier: 2,500 calls/month)
 2. Copy `.env.example` to `.env.local` and add your credentials
-3. The app automatically fetches and caches data (reference data every 24h, prices every 60 min)
+3. The app automatically fetches and caches the live NSW/TAS bundle (prices + stations) every 60 min
 4. Budget: ~750 API calls/month, well under the 2,500 limit
 
 ServoSight is now live-data only for NSW/TAS stations from the government feed, with user-reported price updates layered on top.
