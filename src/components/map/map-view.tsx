@@ -42,6 +42,7 @@ export const MapView = ({ onStationSelect }: MapViewProps) => {
   const [showHydrogen, setShowHydrogen] = useState(false);
   const [showEv, setShowEv] = useState(false);
   const [flyTo, setFlyTo] = useState<{ lat: number; lng: number } | null>(null);
+  const [dataSource, setDataSource] = useState<"loading" | "live" | "demo">("loading");
 
   const fetchStations = useCallback(async () => {
     const params = new URLSearchParams({ fuelType: selectedFuel });
@@ -52,6 +53,9 @@ export const MapView = ({ onStationSelect }: MapViewProps) => {
     if (res.ok) {
       const data = await res.json();
       setStations(data);
+
+      const hasNswLive = data.some((s: StationWithPrices) => s.id.startsWith("nsw-"));
+      setDataSource(hasNswLive ? "live" : "demo");
     }
   }, [selectedFuel, showHydrogen, showEv]);
 
@@ -105,6 +109,15 @@ export const MapView = ({ onStationSelect }: MapViewProps) => {
       />
 
       <LocateButton onLocate={handleLocate} />
+
+      {dataSource !== "loading" && (
+        <div className="absolute bottom-20 left-4 z-[1000] flex items-center gap-1.5 rounded-full bg-background/90 px-2.5 py-1 text-[10px] font-medium shadow-sm ring-1 ring-border/50 backdrop-blur-sm md:bottom-4">
+          <div className={`h-1.5 w-1.5 rounded-full ${dataSource === "live" ? "bg-green-500 animate-pulse" : "bg-amber-500"}`} />
+          <span className="text-muted-foreground">
+            {dataSource === "live" ? "Live NSW data" : `${stations.length} stations`}
+          </span>
+        </div>
+      )}
     </div>
   );
 };

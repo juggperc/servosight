@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { queryStations } from "@/lib/store";
 import type { FuelTypeId } from "@/lib/types";
 
-export const GET = (request: NextRequest) => {
+export const dynamic = "force-dynamic";
+
+export const GET = async (request: NextRequest) => {
   const { searchParams } = request.nextUrl;
 
   const fuelType = searchParams.get("fuelType") as FuelTypeId | null;
@@ -12,7 +14,7 @@ export const GET = (request: NextRequest) => {
   const hasHydrogen = searchParams.get("hasHydrogen") === "true";
   const hasEv = searchParams.get("hasEv") === "true";
 
-  const results = queryStations({
+  const results = await queryStations({
     fuelType: fuelType || undefined,
     lat,
     lng,

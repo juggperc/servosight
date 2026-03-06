@@ -16,7 +16,7 @@ export const POST = async (request: NextRequest) => {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const station = getStation(stationId);
+    const station = await getStation(stationId);
     if (!station) {
       return NextResponse.json({ error: "Station not found" }, { status: 404 });
     }
