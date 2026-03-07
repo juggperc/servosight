@@ -18,7 +18,7 @@ import {
 import { STANDARD_FUEL_TYPES } from "@/lib/data/fuel-types";
 import type { StationWithPrices, FuelTypeId } from "@/lib/types";
 import { useGeolocation } from "@/lib/hooks/use-geolocation";
-import { Locate, Loader2, LineChart, TrendingDown, TrendingUp, Route } from "lucide-react";
+import { Locate, Loader2, LineChart, TrendingDown, TrendingUp, Route, X } from "lucide-react";
 import { useLocalStorage } from "@/lib/hooks/use-local-storage";
 import { formatPriceCents } from "@/lib/utils";
 import { motion } from "motion/react";
@@ -253,6 +253,15 @@ export const SearchSheet = ({ open, onOpenChange }: SearchSheetProps) => {
                       Find the absolute cheapest detour on your way home. Don't waste fuel looking for it.
                     </p>
                   </div>
+                  {smartRouteOpen && (
+                    <button
+                      onClick={() => setSmartRouteOpen(false)}
+                      className="rounded-full bg-white/10 p-1.5 text-zinc-400 transition-colors hover:bg-white/20 hover:text-white"
+                      aria-label="Close Smart Route Pricing"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
 
                 {!smartRouteOpen ? (
@@ -347,6 +356,6 @@ export const SearchSheet = ({ open, onOpenChange }: SearchSheetProps) => {
           )}
         </div>
       </DrawerContent>
-    </Drawer >
+    </Drawer>
   );
 };
