@@ -37,7 +37,7 @@ export const FreshnessFilterBar = ({
           className={cn(
             "glass-pill rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors",
             value === option.id
-              ? "bg-foreground text-background dark:bg-white dark:text-black"
+              ? "bg-primary text-primary-foreground"
               : "text-foreground"
           )}
         >

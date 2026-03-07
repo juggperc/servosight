@@ -46,7 +46,7 @@ export const FuelFilter = ({
           className={cn(
             "glass-pill shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-all",
             selectedFuel === fuel.id
-              ? "bg-foreground text-background shadow-[0_16px_24px_rgba(15,23,42,0.16)] dark:bg-white dark:text-black"
+              ? "bg-primary text-primary-foreground shadow-[0_16px_24px_rgba(15,23,42,0.16)]"
               : "text-foreground"
           )}
         >
