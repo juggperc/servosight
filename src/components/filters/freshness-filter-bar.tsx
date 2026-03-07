@@ -35,10 +35,10 @@ export const FreshnessFilterBar = ({
           aria-pressed={value === option.id}
           tabIndex={0}
           className={cn(
-            "rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors",
+            "rounded-full px-3.5 py-1.5 text-[11px] font-medium transition-all ring-1",
             value === option.id
-              ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
-              : "glass-pill text-foreground"
+              ? "bg-zinc-950 text-white shadow-lg ring-zinc-800"
+              : "bg-black/30 text-zinc-300 ring-white/10 backdrop-blur-md hover:bg-black/40"
           )}
         >
           {option.label}

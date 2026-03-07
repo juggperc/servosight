@@ -28,7 +28,7 @@ export const FuelFilter = ({
   const haptics = useAppHaptics();
 
   return (
-    <div className="absolute top-4 left-4 right-4 z-[1000] flex items-center gap-2 overflow-x-auto pb-1 md:left-auto md:right-4 md:max-w-md">
+    <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
       {STANDARD_FUEL_TYPES.map((fuel) => (
         <motion.button
           key={fuel.id}
@@ -44,10 +44,10 @@ export const FuelFilter = ({
           whileTap={{ scale: 0.96 }}
           transition={softSpring}
           className={cn(
-            "shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-all",
+            "shrink-0 rounded-full px-3.5 py-2 text-[11px] font-semibold transition-all",
             selectedFuel === fuel.id
-              ? "bg-neutral-900 text-white shadow-[0_16px_24px_rgba(15,23,42,0.16)] dark:bg-white dark:text-neutral-900"
-              : "glass-pill text-foreground"
+              ? "bg-zinc-950 text-white shadow-lg ring-1 ring-zinc-800"
+              : "bg-black/40 text-zinc-300 ring-1 ring-white/10 backdrop-blur-md"
           )}
         >
           {fuel.shortLabel}
@@ -69,10 +69,10 @@ export const FuelFilter = ({
         whileTap={{ scale: 0.96 }}
         transition={softSpring}
         className={cn(
-          "glass-pill flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold transition-all",
+          "flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-[11px] font-semibold transition-all ring-1 backdrop-blur-md",
           showEv
-            ? "bg-green-500 text-white"
-            : "text-foreground"
+            ? "bg-green-500 text-white ring-green-600 shadow-lg"
+            : "bg-black/40 text-zinc-300 ring-white/10"
         )}
       >
         <Zap className="h-3 w-3" />
@@ -92,10 +92,10 @@ export const FuelFilter = ({
         whileTap={{ scale: 0.96 }}
         transition={softSpring}
         className={cn(
-          "glass-pill flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold transition-all",
+          "flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-[11px] font-semibold transition-all ring-1 backdrop-blur-md",
           showHydrogen
-            ? "bg-blue-500 text-white"
-            : "text-foreground"
+            ? "bg-blue-500 text-white ring-blue-600 shadow-lg"
+            : "bg-black/40 text-zinc-300 ring-white/10"
         )}
       >
         <Atom className="h-3 w-3" />

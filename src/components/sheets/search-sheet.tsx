@@ -22,6 +22,7 @@ import { useGeolocation } from "@/lib/hooks/use-geolocation";
 import { Locate, Loader2 } from "lucide-react";
 import { FreshnessFilterBar } from "@/components/filters/freshness-filter-bar";
 import { filterStationsByFreshness } from "@/lib/freshness";
+import { useLocalStorage } from "@/lib/hooks/use-local-storage";
 
 type SearchSheetProps = {
   open: boolean;
@@ -36,8 +37,15 @@ export const SearchSheet = ({ open, onOpenChange }: SearchSheetProps) => {
   const [freshness, setFreshness] = useState<FreshnessFilterId>("any");
   const [searching, setSearching] = useState(false);
 
+  const [aggregateMode] = useLocalStorage<boolean>("servo-aggregate-mode", true);
+  const [petrolspyMode] = useLocalStorage<boolean>("servo-petrolspy-mode", false);
+
   const handleSearch = useCallback(async () => {
     if (!lat || !lng) return;
+    if (!aggregateMode && !petrolspyMode) {
+      setStations([]);
+      return;
+    }
 
     setSearching(true);
     try {
@@ -48,20 +56,41 @@ export const SearchSheet = ({ open, onOpenChange }: SearchSheetProps) => {
         radius: radius.toString(),
       });
 
-      const res = await fetch(`/api/stations?${params}`);
-      if (res.ok) {
-        const data = filterStationsByFreshness(
-          (await res.json()) as StationWithPrices[],
-          fuelType,
-          freshness
-        );
-        data.sort((a, b) => (a.cheapestPrice ?? Infinity) - (b.cheapestPrice ?? Infinity));
-        setStations(data);
+      const promises = [];
+
+      if (aggregateMode) {
+        promises.push(fetch(`/api/stations?${params}`).then((r) => r.ok ? r.json() : []));
       }
+
+      if (petrolspyMode) {
+        promises.push(fetch(`/api/petrolspy?lat=${lat}&lng=${lng}`).then(async (r) => {
+          if (!r.ok) return [];
+          const data = await r.json();
+          const list = Array.isArray(data) ? data : data?.stations ?? [];
+          return list;
+        }));
+      }
+
+      const results = await Promise.allSettled(promises);
+      let combinedStations: StationWithPrices[] = [];
+
+      for (const result of results) {
+        if (result.status === "fulfilled" && Array.isArray(result.value)) {
+          combinedStations = [...combinedStations, ...result.value];
+        }
+      }
+
+      const data = filterStationsByFreshness(
+        combinedStations,
+        fuelType,
+        freshness
+      );
+      data.sort((a, b) => (a.cheapestPrice ?? Infinity) - (b.cheapestPrice ?? Infinity));
+      setStations(data);
     } finally {
       setSearching(false);
     }
-  }, [freshness, fuelType, lat, lng, radius]);
+  }, [freshness, fuelType, lat, lng, radius, aggregateMode, petrolspyMode]);
 
   useEffect(() => {
     if (open && !lat && !lng) {

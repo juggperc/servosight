@@ -585,27 +585,32 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
         )}
       </MapContainer>
 
-      <FuelFilter
-        selectedFuel={selectedFuel}
-        onFuelChange={setSelectedFuel}
-        showHydrogen={showHydrogen}
-        onHydrogenChange={setShowHydrogen}
-        showEv={showEv}
-        onEvChange={setShowEv}
-      />
+      <div className="pointer-events-none absolute bottom-24 left-4 right-4 z-[1000] flex flex-col gap-3 md:bottom-8 md:items-end md:right-4 md:left-auto">
+        <div className="pointer-events-auto">
+          <FuelFilter
+            selectedFuel={selectedFuel}
+            onFuelChange={setSelectedFuel}
+            showHydrogen={showHydrogen}
+            onHydrogenChange={setShowHydrogen}
+            showEv={showEv}
+            onEvChange={setShowEv}
+          />
+        </div>
 
-      <FreshnessFilterBar
-        value={freshness}
-        onChange={setFreshness}
-        className="absolute top-[3.85rem] left-4 right-4 z-[1000] md:left-auto md:right-4 md:max-w-md"
-      />
+        <div className="pointer-events-auto">
+          <FreshnessFilterBar
+            value={freshness}
+            onChange={setFreshness}
+          />
+        </div>
+      </div>
 
       <LocateButton onLocate={handleLocate} />
 
       {petrolspyMode && (
-        <div className="pointer-events-auto absolute bottom-20 left-4 z-[1000] flex flex-col gap-1 md:bottom-4 md:left-4">
+        <div className="pointer-events-auto absolute bottom-48 left-4 z-[1000] flex flex-col gap-1 md:bottom-8 md:left-4">
           {petrolspyError && (
-            <div className="glass-pill max-w-[200px] rounded-lg px-2 py-1 text-[10px] text-amber-600 dark:text-amber-500">
+            <div className="bg-black/40 backdrop-blur-md ring-1 ring-white/10 max-w-[200px] rounded-[14px] px-2.5 py-1.5 text-[10px] text-amber-500 font-medium">
               PetrolSpy: {petrolspyError}
             </div>
           )}
@@ -613,7 +618,7 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
             href="https://petrolspy.com.au"
             target="_blank"
             rel="noopener noreferrer"
-            className="glass-pill flex w-fit items-center gap-1.5 rounded-lg px-2 py-1.5 text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+            className="bg-black/40 backdrop-blur-md ring-1 ring-white/10 flex w-fit items-center gap-1.5 rounded-[14px] px-2.5 py-1.5 text-[10px] font-medium text-zinc-300 transition-colors hover:text-white"
             aria-label="PetrolSpy – fuel data attribution"
           >
             <img
@@ -623,14 +628,14 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
               width={14}
               height={14}
             />
-            <span className="font-semibold text-amber-600 dark:text-amber-500">PetrolSpy</span>
+            <span className="font-semibold text-amber-500">PetrolSpy</span>
           </a>
         </div>
       )}
 
       {dataSource !== "loading" && (aggregateMode || petrolspyMode) && (
         <div
-          className={`above-bottom-nav glass-pill absolute left-4 z-[1000] flex max-w-[calc(100%-6.5rem)] items-center gap-1.5 rounded-full text-[10px] font-medium md:bottom-4 md:max-w-none ${compactOverlay ? "px-2 py-1" : "px-2.5 py-1"
+          className={`pointer-events-auto absolute left-4 bottom-[15.5rem] z-[1000] flex max-w-[calc(100%-6.5rem)] items-center gap-1.5 rounded-[14px] bg-black/40 backdrop-blur-md ring-1 ring-white/10 text-[10px] font-medium md:bottom-20 md:max-w-none ${compactOverlay ? "px-2 py-1.5" : "px-2.5 py-1.5"
             }`}
         >
           <div

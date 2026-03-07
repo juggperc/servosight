@@ -22,6 +22,7 @@ import { useGeolocation } from "@/lib/hooks/use-geolocation";
 import { Locate, Loader2, Flame } from "lucide-react";
 import { FreshnessFilterBar } from "@/components/filters/freshness-filter-bar";
 import { filterStationsByFreshness } from "@/lib/freshness";
+import { useLocalStorage } from "@/lib/hooks/use-local-storage";
 
 type DealsSheetProps = {
   open: boolean;
@@ -37,8 +38,16 @@ export const DealsSheet = ({ open, onOpenChange }: DealsSheetProps) => {
   const [searching, setSearching] = useState(false);
   const [averagePrice, setAveragePrice] = useState(0);
 
+  const [aggregateMode] = useLocalStorage<boolean>("servo-aggregate-mode", true);
+  const [petrolspyMode] = useLocalStorage<boolean>("servo-petrolspy-mode", false);
+
   const fetchDeals = useCallback(async () => {
     if (!lat || !lng) return;
+    if (!aggregateMode && !petrolspyMode) {
+      setDeals([]);
+      setAveragePrice(0);
+      return;
+    }
 
     setSearching(true);
     try {
@@ -49,28 +58,49 @@ export const DealsSheet = ({ open, onOpenChange }: DealsSheetProps) => {
         radius: radius.toString(),
       });
 
-      const res = await fetch(`/api/stations?${params}`);
-      if (res.ok) {
-        const data = filterStationsByFreshness(
-          (await res.json()) as StationWithPrices[],
-          fuelType,
-          freshness
-        );
-        const withPrices = data.filter((s) => s.cheapestPrice !== undefined);
+      const promises = [];
 
-        const avg =
-          withPrices.length > 0
-            ? withPrices.reduce((sum, s) => sum + (s.cheapestPrice ?? 0), 0) / withPrices.length
-            : 0;
-        setAveragePrice(avg);
-
-        withPrices.sort((a, b) => (a.cheapestPrice ?? Infinity) - (b.cheapestPrice ?? Infinity));
-        setDeals(withPrices.slice(0, 10));
+      if (aggregateMode) {
+        promises.push(fetch(`/api/stations?${params}`).then((r) => r.ok ? r.json() : []));
       }
+
+      if (petrolspyMode) {
+        promises.push(fetch(`/api/petrolspy?lat=${lat}&lng=${lng}`).then(async (r) => {
+          if (!r.ok) return [];
+          const data = await r.json();
+          const list = Array.isArray(data) ? data : data?.stations ?? [];
+          return list;
+        }));
+      }
+
+      const results = await Promise.allSettled(promises);
+      let combinedStations: StationWithPrices[] = [];
+
+      for (const result of results) {
+        if (result.status === "fulfilled" && Array.isArray(result.value)) {
+          combinedStations = [...combinedStations, ...result.value];
+        }
+      }
+
+      const data = filterStationsByFreshness(
+        combinedStations,
+        fuelType,
+        freshness
+      );
+      const withPrices = data.filter((s) => s.cheapestPrice !== undefined);
+
+      const avg =
+        withPrices.length > 0
+          ? withPrices.reduce((sum, s) => sum + (s.cheapestPrice ?? 0), 0) / withPrices.length
+          : 0;
+      setAveragePrice(avg);
+
+      withPrices.sort((a, b) => (a.cheapestPrice ?? Infinity) - (b.cheapestPrice ?? Infinity));
+      setDeals(withPrices.slice(0, 10));
     } finally {
       setSearching(false);
     }
-  }, [freshness, fuelType, lat, lng, radius]);
+  }, [freshness, fuelType, lat, lng, radius, aggregateMode, petrolspyMode]);
 
   useEffect(() => {
     if (open && !lat && !lng) {
