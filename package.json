@@ -6,9 +6,17 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "cap:sync": "npx cap sync",
+    "cap:open": "npx cap open ios"
   },
   "dependencies": {
+    "@capacitor/core": "^8.2.0",
+    "@capacitor/geolocation": "^8.1.0",
+    "@capacitor/haptics": "^8.0.1",
+    "@capacitor/ios": "^8.2.0",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.1",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "cheerio": "^1.2.0",
     "class-variance-authority": "^0.7.1",
@@ -29,6 +37,7 @@
     "web-haptics": "^0.0.6"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.2.0",
     "@eslint/eslintrc": "^3.3.4",
     "@tailwindcss/postcss": "^4.2.1",
     "@types/leaflet": "^1.9.21",
