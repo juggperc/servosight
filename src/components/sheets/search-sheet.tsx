@@ -16,10 +16,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { STANDARD_FUEL_TYPES } from "@/lib/data/fuel-types";
-import type { StationWithPrices, FuelTypeId } from "@/lib/types";
+import type { StationWithPrices, FuelTypeId, FreshnessFilterId } from "@/lib/types";
 import { StationCard } from "@/components/cards/station-card";
 import { useGeolocation } from "@/lib/hooks/use-geolocation";
 import { Locate, Loader2 } from "lucide-react";
+import { FreshnessFilterBar } from "@/components/filters/freshness-filter-bar";
+import { filterStationsByFreshness } from "@/lib/freshness";
 
 type SearchSheetProps = {
   open: boolean;
@@ -31,6 +33,7 @@ export const SearchSheet = ({ open, onOpenChange }: SearchSheetProps) => {
   const [stations, setStations] = useState<StationWithPrices[]>([]);
   const [fuelType, setFuelType] = useState<FuelTypeId>("u91");
   const [radius, setRadius] = useState(10);
+  const [freshness, setFreshness] = useState<FreshnessFilterId>("any");
   const [searching, setSearching] = useState(false);
 
   const handleSearch = useCallback(async () => {
@@ -47,14 +50,18 @@ export const SearchSheet = ({ open, onOpenChange }: SearchSheetProps) => {
 
       const res = await fetch(`/api/stations?${params}`);
       if (res.ok) {
-        const data: StationWithPrices[] = await res.json();
+        const data = filterStationsByFreshness(
+          (await res.json()) as StationWithPrices[],
+          fuelType,
+          freshness
+        );
         data.sort((a, b) => (a.cheapestPrice ?? Infinity) - (b.cheapestPrice ?? Infinity));
         setStations(data);
       }
     } finally {
       setSearching(false);
     }
-  }, [lat, lng, fuelType, radius]);
+  }, [freshness, fuelType, lat, lng, radius]);
 
   useEffect(() => {
     if (open && !lat && !lng) {
@@ -102,6 +109,8 @@ export const SearchSheet = ({ open, onOpenChange }: SearchSheetProps) => {
               </SelectContent>
             </Select>
           </div>
+
+          <FreshnessFilterBar value={freshness} onChange={setFreshness} />
 
           {!lat && !lng && (
             <div className="flex flex-col items-center gap-3 py-8">

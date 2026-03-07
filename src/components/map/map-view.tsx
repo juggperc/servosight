@@ -12,11 +12,15 @@ import {
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useTheme } from "next-themes";
-import type { StationWithPrices, FuelTypeId } from "@/lib/types";
+import type { StationWithPrices, FuelTypeId, FreshnessFilterId, PriceAlert } from "@/lib/types";
 import { StationMarker } from "./station-marker";
 import { LocateButton } from "./locate-button";
 import { FuelFilter } from "./fuel-filter";
 import { formatPriceCents } from "@/lib/utils";
+import { useLocalStorage } from "@/lib/hooks/use-local-storage";
+import { FreshnessFilterBar } from "@/components/filters/freshness-filter-bar";
+import { filterStationsByFreshness } from "@/lib/freshness";
+import { BellRing } from "lucide-react";
 
 const LIGHT_TILES = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 const DARK_TILES = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
@@ -50,6 +54,14 @@ type StationCluster = {
   minPrice?: number;
   maxPrice?: number;
   stations: StationWithPrices[];
+};
+
+type AlertToast = {
+  id: string;
+  stationName: string;
+  fuelType: FuelTypeId;
+  price: number;
+  threshold: number;
 };
 
 const ThemeTileLayer = () => {
@@ -162,8 +174,11 @@ export const MapView = ({ onStationSelect, navLocation }: MapViewProps) => {
   const [selectedFuel, setSelectedFuel] = useState<FuelTypeId>("u91");
   const [showHydrogen, setShowHydrogen] = useState(false);
   const [showEv, setShowEv] = useState(false);
+  const [freshness, setFreshness] = useState<FreshnessFilterId>("any");
   const [flyTo, setFlyTo] = useState<FlyToState | null>(null);
   const [dataSource, setDataSource] = useState<"loading" | "live" | "unavailable">("loading");
+  const [priceAlerts, setPriceAlerts] = useLocalStorage<PriceAlert[]>("servo-price-alerts", []);
+  const [alertToasts, setAlertToasts] = useState<AlertToast[]>([]);
   const [viewport, setViewport] = useState<ViewportState>({
     zoom: DEFAULT_ZOOM,
     bounds: null,
@@ -202,7 +217,7 @@ export const MapView = ({ onStationSelect, navLocation }: MapViewProps) => {
   }, []);
 
   const { p33, p66 } = useMemo(() => {
-    const allPrices = stations
+    const allPrices = filterStationsByFreshness(stations, selectedFuel, freshness)
       .map((s) => s.cheapestPrice)
       .filter((p): p is number => p !== undefined)
       .sort((a, b) => a - b);
@@ -211,16 +226,134 @@ export const MapView = ({ onStationSelect, navLocation }: MapViewProps) => {
       p33: allPrices[Math.floor(allPrices.length * 0.33)] ?? 0,
       p66: allPrices[Math.floor(allPrices.length * 0.66)] ?? Infinity,
     };
-  }, [stations]);
+  }, [freshness, selectedFuel, stations]);
+
+  const freshnessFilteredStations = useMemo(
+    () => filterStationsByFreshness(stations, selectedFuel, freshness),
+    [freshness, selectedFuel, stations]
+  );
+
+  const alertsByKey = useMemo(() => {
+    return new Map(
+      priceAlerts.map((alert) => [`${alert.stationId}:${alert.fuelType}`, alert] as const)
+    );
+  }, [priceAlerts]);
+
+  useEffect(() => {
+    if (!priceAlerts.length || !stations.length) return;
+
+    const stationMap = new Map(stations.map((station) => [station.id, station] as const));
+    const nextToasts: AlertToast[] = [];
+    let didUpdateAlerts = false;
+
+    const nextAlerts = priceAlerts.map((alert) => {
+      const station = stationMap.get(alert.stationId);
+      const priceData = station?.prices[alert.fuelType];
+
+      if (!priceData || priceData.price > alert.threshold) {
+        return alert;
+      }
+
+      const lastNotifiedTime = alert.lastNotifiedAt ? new Date(alert.lastNotifiedAt).getTime() : 0;
+      const reportedTime = new Date(priceData.reportedAt).getTime();
+      const alreadyNotifiedForThisUpdate = lastNotifiedTime >= reportedTime;
+
+      if (alreadyNotifiedForThisUpdate) {
+        return alert;
+      }
+
+      didUpdateAlerts = true;
+      nextToasts.push({
+        id: `${alert.id}-${reportedTime}`,
+        stationName: alert.stationName,
+        fuelType: alert.fuelType,
+        price: priceData.price,
+        threshold: alert.threshold,
+      });
+
+      return {
+        ...alert,
+        lastNotifiedAt: priceData.reportedAt,
+        lastNotifiedPrice: priceData.price,
+      };
+    });
+
+    if (didUpdateAlerts) {
+      setPriceAlerts(nextAlerts);
+    }
+
+    if (nextToasts.length) {
+      setAlertToasts((previous) => {
+        const existingIds = new Set(previous.map((toast) => toast.id));
+        return [...previous, ...nextToasts.filter((toast) => !existingIds.has(toast.id))];
+      });
+    }
+  }, [priceAlerts, setPriceAlerts, stations]);
+
+  useEffect(() => {
+    if (!alertToasts.length) return;
+
+    const timers = alertToasts.map((toast) =>
+      window.setTimeout(() => {
+        setAlertToasts((previous) => previous.filter((item) => item.id !== toast.id));
+      }, 5000)
+    );
+
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [alertToasts]);
+
+  const handleSaveAlert = useCallback(
+    (station: StationWithPrices, fuelType: FuelTypeId, threshold: number) => {
+      setPriceAlerts((previous) => {
+        const existing = previous.find(
+          (alert) => alert.stationId === station.id && alert.fuelType === fuelType
+        );
+
+        if (existing) {
+          return previous.map((alert) =>
+            alert.id === existing.id
+              ? {
+                  ...alert,
+                  threshold,
+                  createdAt: new Date().toISOString(),
+                }
+              : alert
+          );
+        }
+
+        return [
+          ...previous,
+          {
+            id: `alert-${station.id}-${fuelType}`,
+            stationId: station.id,
+            stationName: station.name,
+            fuelType,
+            threshold,
+            createdAt: new Date().toISOString(),
+          },
+        ];
+      });
+    },
+    [setPriceAlerts]
+  );
+
+  const handleRemoveAlert = useCallback(
+    (alertId: string) => {
+      setPriceAlerts((previous) => previous.filter((alert) => alert.id !== alertId));
+    },
+    [setPriceAlerts]
+  );
 
   const visibleStations = useMemo(() => {
     if (!viewport.bounds) {
-      return stations;
+      return freshnessFilteredStations;
     }
 
     const paddedBounds = viewport.bounds.pad(0.35);
-    return stations.filter((station) => paddedBounds.contains(L.latLng(station.lat, station.lng)));
-  }, [stations, viewport.bounds]);
+    return freshnessFilteredStations.filter((station) =>
+      paddedBounds.contains(L.latLng(station.lat, station.lng))
+    );
+  }, [freshnessFilteredStations, viewport.bounds]);
 
   const { individualStations, stationClusters } = useMemo(() => {
     if (!visibleStations.length || !viewport.bounds || viewport.zoom >= CLUSTER_BREAKPOINT_ZOOM) {
@@ -345,6 +478,9 @@ export const MapView = ({ onStationSelect, navLocation }: MapViewProps) => {
             cheapThreshold={p33}
             expensiveThreshold={p66}
             onSelect={onStationSelect}
+            priceAlert={alertsByKey.get(`${station.id}:${selectedFuel}`)}
+            onSaveAlert={handleSaveAlert}
+            onRemoveAlert={handleRemoveAlert}
           />
         ))}
         {stationClusters.map((cluster) => (
@@ -375,6 +511,12 @@ export const MapView = ({ onStationSelect, navLocation }: MapViewProps) => {
         onEvChange={setShowEv}
       />
 
+      <FreshnessFilterBar
+        value={freshness}
+        onChange={setFreshness}
+        className="absolute top-[3.85rem] left-4 right-4 z-[1000] md:left-auto md:right-4 md:max-w-md"
+      />
+
       <LocateButton onLocate={handleLocate} />
 
       {dataSource !== "loading" && (
@@ -388,11 +530,29 @@ export const MapView = ({ onStationSelect, navLocation }: MapViewProps) => {
             {dataSource === "live"
               ? viewport.zoom < CLUSTER_BREAKPOINT_ZOOM && stationClusters.length > 0
                 ? `${visibleStations.length.toLocaleString()} stations · ${stationClusters.length} smart groups`
-                : `${stations.length.toLocaleString()} live NSW/TAS stations`
+                : `${freshnessFilteredStations.length.toLocaleString()} live NSW/TAS stations`
               : "Live NSW data unavailable"}
           </span>
         </div>
       )}
+
+      <div className="pointer-events-none absolute right-4 top-[7.25rem] z-[1100] flex max-w-xs flex-col gap-2 md:top-4">
+        {alertToasts.map((toast) => (
+          <div
+            key={toast.id}
+            className="glass-panel flex items-start gap-2 rounded-2xl px-3 py-2 shadow-lg"
+          >
+            <BellRing className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-foreground">{toast.stationName}</p>
+              <p className="text-[11px] text-muted-foreground">
+                {toast.fuelType.toUpperCase()} hit {formatPriceCents(toast.price)} under your{" "}
+                {formatPriceCents(toast.threshold)} alert.
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
 
       {dataSource === "unavailable" && (
         <div className="glass-panel-strong pointer-events-none absolute inset-x-4 top-24 z-[1000] mx-auto max-w-sm rounded-[1.6rem] p-4 text-center">

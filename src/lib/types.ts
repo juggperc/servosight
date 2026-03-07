@@ -11,6 +11,8 @@ export type FuelTypeId =
 
 export type FuelCategory = "standard" | "premium" | "diesel" | "gas" | "alternative";
 
+export type FreshnessFilterId = "any" | "6h" | "today";
+
 export type FuelType = {
   id: FuelTypeId;
   label: string;
@@ -45,6 +47,17 @@ export type StationWithPrices = Station & {
   prices: Record<FuelTypeId, { price: number; reportedAt: string } | undefined>;
   cheapestPrice?: number;
   distance?: number;
+};
+
+export type PriceAlert = {
+  id: string;
+  stationId: string;
+  stationName: string;
+  fuelType: FuelTypeId;
+  threshold: number;
+  createdAt: string;
+  lastNotifiedAt?: string;
+  lastNotifiedPrice?: number;
 };
 
 export type RouteStep = {
