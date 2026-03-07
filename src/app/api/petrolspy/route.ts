@@ -3,13 +3,12 @@ import { NextRequest, NextResponse } from "next/server";
 import type { FuelTypeId, StationWithPrices } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+export const runtime = "edge";
 export const fetchCache = "force-no-store";
 export const revalidate = 0;
 
 const PETROLSPY_JSON_API = "https://petrolspy.com.au/webservice-1/station/box";
 
-// Map PetrolSpy fuel types to our internal IDs
 const FUEL_TYPE_MAP: Record<string, FuelTypeId> = {
   U91: "u91",
   E10: "e10",
@@ -19,6 +18,30 @@ const FUEL_TYPE_MAP: Record<string, FuelTypeId> = {
   DIESEL: "diesel",
   LPG: "lpg",
 };
+
+const MAX_RETRIES = 2;
+const RETRY_DELAY_MS = 800;
+
+async function fetchWithRetry(url: string, init: RequestInit, retries = MAX_RETRIES): Promise<Response> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, init);
+      if (res.ok) return res;
+      if (attempt < retries && (res.status >= 500 || res.status === 429 || res.status === 403)) {
+        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS * (attempt + 1)));
+        continue;
+      }
+      return res;
+    } catch (err) {
+      if (attempt < retries) {
+        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS * (attempt + 1)));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error("Exhausted retries");
+}
 
 export const GET = async (request: NextRequest) => {
   const { searchParams } = request.nextUrl;
@@ -38,7 +61,6 @@ export const GET = async (request: NextRequest) => {
     return NextResponse.json({ error: "Invalid lat or lng" }, { status: 400 });
   }
 
-  // Create a 0.5 deg rough bounding box around the user (approx 50km radius)
   const offset = 0.5;
   const neLat = latNum + offset;
   const swLat = latNum - offset;
@@ -48,16 +70,18 @@ export const GET = async (request: NextRequest) => {
   const url = `${PETROLSPY_JSON_API}?neLat=${neLat}&neLng=${neLng}&swLat=${swLat}&swLng=${swLng}`;
 
   try {
-    const res = await fetch(url, {
+    const res = await fetchWithRetry(url, {
       headers: {
         "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        Accept: "application/json",
+          "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1",
+        Accept: "application/json, text/plain, */*",
         "Accept-Language": "en-AU,en;q=0.9",
-        "Referer": "https://petrolspy.com.au/map/latlng/" + lat + "/" + lng,
+        "Accept-Encoding": "gzip, deflate, br",
+        Referer: `https://petrolspy.com.au/map/latlng/${lat}/${lng}`,
+        Origin: "https://petrolspy.com.au",
       },
       cache: "no-store",
-      signal: AbortSignal.timeout(20000),
+      signal: AbortSignal.timeout(15000),
     });
 
     if (!res.ok) {
@@ -69,11 +93,10 @@ export const GET = async (request: NextRequest) => {
 
     const data = await res.json();
 
-    // Safety check for their schema
     if (!data?.message?.list || !Array.isArray(data.message.list)) {
       return NextResponse.json({
         stations: [],
-        error: "PetrolSpy format changed. No list found."
+        error: "PetrolSpy format changed. No list found.",
       });
     }
 
@@ -81,26 +104,20 @@ export const GET = async (request: NextRequest) => {
     const stations: StationWithPrices[] = [];
 
     rawStations.forEach((raw) => {
-      // Must have pricing and location data
       if (!raw.prices || !raw.location || !raw.location.y || !raw.location.x) return;
 
       const prices: Record<FuelTypeId, { price: number; reportedAt: string } | undefined> = {} as any;
       let minPrice = Infinity;
 
       for (const [psType, priceData] of Object.entries(raw.prices)) {
-        // Must be an object with an 'amount' and mapped to our system
-        if (priceData && typeof priceData === 'object' && 'amount' in priceData) {
+        if (priceData && typeof priceData === "object" && "amount" in priceData) {
           const mappedId = FUEL_TYPE_MAP[psType];
           if (mappedId) {
-            // PetrolSpy returns in cents, e.g. 215.9. Our app maps nicely to keeping the decimal format (215.9 cents)
             const amt = Number(priceData.amount);
-
             prices[mappedId] = {
-              price: amt * 10, // Assuming internal app logic handles it as int or raw float? Wait. Route returns cents? Wait, our app renders cents like formatPriceCents. 215.9 -> 215.9? Wait our UI expects 2159? No, `parsePrice` returned Math.round(val * 10) like 215.9 -> 2159 but Petrolspy amount IS 215.9
-              // Actually, let's map it safely. 215.9 -> 2159
+              price: amt * 10,
               reportedAt: new Date((priceData as any).updated || Date.now()).toISOString(),
             };
-
             const cPrice = amt * 10;
             if (cPrice < minPrice) minPrice = cPrice;
           }
