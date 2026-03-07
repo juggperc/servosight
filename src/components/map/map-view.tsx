@@ -273,10 +273,14 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
     };
   }, [countrywideMode, viewport.bounds, fetchPetrolspy]);
 
-  const combinedStations = useMemo(
-    () => [...stations, ...petrolspyStations],
-    [stations, petrolspyStations]
-  );
+  const combinedStations = useMemo(() => {
+    const all = [...stations, ...petrolspyStations];
+    return all.filter((s) => {
+      if (showEv && !s.hasEv) return false;
+      if (showHydrogen && !s.hasHydrogen) return false;
+      return true;
+    });
+  }, [stations, petrolspyStations, showEv, showHydrogen]);
 
   const handleLocate = useCallback((lat: number, lng: number) => {
     setFlyTo({ lat, lng });
