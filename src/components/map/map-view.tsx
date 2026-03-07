@@ -181,6 +181,9 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
   const [flyTo, setFlyTo] = useState<FlyToState | null>(null);
   const [dataSource, setDataSource] = useState<"loading" | "live" | "unavailable">("loading");
   const [priceAlerts, setPriceAlerts] = useLocalStorage<PriceAlert[]>("servo-price-alerts", []);
+  const [petrolspyMode] = useLocalStorage<boolean>("servo-petrolspy-mode", false);
+  const [petrolspyStations, setPetrolspyStations] = useState<StationWithPrices[]>([]);
+  const [petrolspyLoading, setPetrolspyLoading] = useState(false);
   const [alertToasts, setAlertToasts] = useState<AlertToast[]>([]);
   const [viewport, setViewport] = useState<ViewportState>({
     zoom: DEFAULT_ZOOM,
@@ -216,12 +219,57 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
     return () => controller.abort();
   }, [fetchStations]);
 
+  const fetchPetrolspy = useCallback(
+    async (centerLat: number, centerLng: number, signal?: AbortSignal) => {
+      if (!petrolspyMode) return;
+      setPetrolspyLoading(true);
+      try {
+        const res = await fetch(
+          `/api/petrolspy?lat=${centerLat}&lng=${centerLng}`,
+          { signal }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setPetrolspyStations(Array.isArray(data) ? data : []);
+        } else {
+          setPetrolspyStations([]);
+        }
+      } catch {
+        if (!signal?.aborted) setPetrolspyStations([]);
+      } finally {
+        if (!signal?.aborted) setPetrolspyLoading(false);
+      }
+    },
+    [petrolspyMode]
+  );
+
+  useEffect(() => {
+    if (!petrolspyMode || !viewport.bounds) {
+      setPetrolspyStations([]);
+      return;
+    }
+    const center = viewport.bounds.getCenter();
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      fetchPetrolspy(center.lat, center.lng, controller.signal);
+    }, 600);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [petrolspyMode, viewport.bounds, fetchPetrolspy]);
+
+  const combinedStations = useMemo(
+    () => [...stations, ...petrolspyStations],
+    [stations, petrolspyStations]
+  );
+
   const handleLocate = useCallback((lat: number, lng: number) => {
     setFlyTo({ lat, lng });
   }, []);
 
   const { p33, p66 } = useMemo(() => {
-    const allPrices = filterStationsByFreshness(stations, selectedFuel, freshness)
+    const allPrices = filterStationsByFreshness(combinedStations, selectedFuel, freshness)
       .map((s) => s.cheapestPrice)
       .filter((p): p is number => p !== undefined)
       .sort((a, b) => a - b);
@@ -230,11 +278,11 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
       p33: allPrices[Math.floor(allPrices.length * 0.33)] ?? 0,
       p66: allPrices[Math.floor(allPrices.length * 0.66)] ?? Infinity,
     };
-  }, [freshness, selectedFuel, stations]);
+  }, [freshness, selectedFuel, combinedStations]);
 
   const freshnessFilteredStations = useMemo(
-    () => filterStationsByFreshness(stations, selectedFuel, freshness),
-    [freshness, selectedFuel, stations]
+    () => filterStationsByFreshness(combinedStations, selectedFuel, freshness),
+    [freshness, selectedFuel, combinedStations]
   );
 
   const alertsByKey = useMemo(() => {
@@ -244,9 +292,9 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
   }, [priceAlerts]);
 
   useEffect(() => {
-    if (!priceAlerts.length || !stations.length) return;
+    if (!priceAlerts.length || !combinedStations.length) return;
 
-    const stationMap = new Map(stations.map((station) => [station.id, station] as const));
+    const stationMap = new Map(combinedStations.map((station) => [station.id, station] as const));
     const nextToasts: AlertToast[] = [];
     let didUpdateAlerts = false;
 
@@ -293,7 +341,7 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
         return [...previous, ...nextToasts.filter((toast) => !existingIds.has(toast.id))];
       });
     }
-  }, [haptics, priceAlerts, setPriceAlerts, stations]);
+  }, [haptics, priceAlerts, setPriceAlerts, combinedStations]);
 
   useEffect(() => {
     if (!alertToasts.length) return;
@@ -539,6 +587,25 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
 
       <LocateButton onLocate={handleLocate} />
 
+      {petrolspyMode && (
+        <a
+          href="https://petrolspy.com.au"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="glass-pill pointer-events-auto absolute bottom-20 left-4 z-[1000] flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground md:bottom-4 md:left-4"
+          aria-label="PetrolSpy – fuel data attribution"
+        >
+          <img
+            src="https://petrolspy.com.au/favicon.ico"
+            alt=""
+            className="h-3.5 w-3.5"
+            width={14}
+            height={14}
+          />
+          <span className="font-semibold text-amber-600 dark:text-amber-500">PetrolSpy</span>
+        </a>
+      )}
+
       {dataSource !== "loading" && (
         <div
           className={`above-bottom-nav glass-pill absolute left-4 z-[1000] flex max-w-[calc(100%-6.5rem)] items-center gap-1.5 rounded-full text-[10px] font-medium md:bottom-4 md:max-w-none ${
@@ -558,7 +625,7 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
                   : `${visibleStations.length.toLocaleString()} stations · ${stationClusters.length} smart groups`
                 : compactOverlay
                   ? `${freshnessFilteredStations.length.toLocaleString()} live`
-                  : `${freshnessFilteredStations.length.toLocaleString()} live NSW/TAS stations`
+                  : `${freshnessFilteredStations.length.toLocaleString()} live NSW/TAS stations${petrolspyMode && petrolspyStations.length > 0 ? ` + ${petrolspyStations.length} PetrolSpy` : ""}`
               : "Live NSW data unavailable"}
           </span>
         </div>

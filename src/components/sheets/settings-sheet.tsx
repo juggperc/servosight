@@ -10,6 +10,16 @@ import {
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useAppHaptics } from "@/components/haptics-provider";
 import {
   Select,
@@ -22,7 +32,7 @@ import { Slider } from "@/components/ui/slider";
 import { STANDARD_FUEL_TYPES } from "@/lib/data/fuel-types";
 import type { FuelTypeId } from "@/lib/types";
 import { useLocalStorage } from "@/lib/hooks/use-local-storage";
-import { Moon, Sun, Fuel, Radius, Heart, Copy, Check, Smartphone } from "lucide-react";
+import { Moon, Sun, Fuel, Radius, Heart, Copy, Check, Smartphone, Zap } from "lucide-react";
 import { useState, useCallback } from "react";
 import { QRCodeSVG } from "qrcode.react";
 
@@ -34,15 +44,42 @@ type SettingsSheetProps = {
   onOpenChange: (open: boolean) => void;
 };
 
+const PETROLSPY_DISCLAIMER =
+  "PetrolSpy data may be slow to load or fail, but could show cheaper options in your area. Data is scraped from petrolspy.com.au and is not guaranteed.";
+
 export const SettingsSheet = ({ open, onOpenChange }: SettingsSheetProps) => {
   const haptics = useAppHaptics();
   const { resolvedTheme, setTheme } = useTheme();
   const [defaultFuel, setDefaultFuel] = useLocalStorage<FuelTypeId>("servo-default-fuel", "u91");
   const [defaultRadius, setDefaultRadius] = useLocalStorage<number>("servo-default-radius", 10);
+  const [petrolspyMode, setPetrolspyMode] = useLocalStorage<boolean>("servo-petrolspy-mode", false);
 
   const [showQr, setShowQr] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [petrolspyDisclaimerOpen, setPetrolspyDisclaimerOpen] = useState(false);
   const isDark = resolvedTheme === "dark";
+
+  const handlePetrolspyToggle = useCallback(
+    (checked: boolean) => {
+      if (checked) {
+        setPetrolspyDisclaimerOpen(true);
+      } else {
+        haptics.toggleChange(false);
+        setPetrolspyMode(false);
+      }
+    },
+    [haptics, setPetrolspyMode]
+  );
+
+  const handlePetrolspyConfirm = useCallback(() => {
+    haptics.toggleChange(true);
+    setPetrolspyMode(true);
+    setPetrolspyDisclaimerOpen(false);
+  }, [haptics, setPetrolspyMode]);
+
+  const handlePetrolspyCancel = useCallback(() => {
+    setPetrolspyDisclaimerOpen(false);
+  }, []);
 
   const handleThemeToggle = () => {
     haptics.toggleChange(!isDark);
@@ -106,6 +143,38 @@ export const SettingsSheet = ({ open, onOpenChange }: SettingsSheetProps) => {
               aria-label="Toggle haptic feedback"
             />
           </div>
+
+          <Separator />
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Zap className="h-5 w-5 text-amber-500" />
+              <div>
+                <Label className="text-sm font-medium">PetrolSpy Prices</Label>
+                <p className="text-xs text-muted-foreground">
+                  Show crowdsourced prices from PetrolSpy (VIC & more)
+                </p>
+              </div>
+            </div>
+            <Switch
+              checked={petrolspyMode}
+              onCheckedChange={handlePetrolspyToggle}
+              aria-label="Toggle PetrolSpy price overlay"
+            />
+          </div>
+
+          <AlertDialog open={petrolspyDisclaimerOpen} onOpenChange={setPetrolspyDisclaimerOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Enable PetrolSpy prices?</AlertDialogTitle>
+                <AlertDialogDescription>{PETROLSPY_DISCLAIMER}</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={handlePetrolspyCancel}>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handlePetrolspyConfirm}>Enable</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           <Separator />
 
