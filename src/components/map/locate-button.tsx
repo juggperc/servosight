@@ -54,7 +54,7 @@ export const LocateButton = ({ onLocate }: LocateButtonProps) => {
       whileHover={{ y: -1.5 }}
       whileTap={{ scale: 0.96 }}
       transition={softSpring}
-      className="glass-panel absolute right-4 bottom-28 z-[1000] flex h-12 w-12 items-center justify-center rounded-[1.35rem] text-foreground transition-all disabled:opacity-50 md:bottom-8"
+      className="glass-panel absolute right-4 bottom-32 z-[1000] flex h-12 w-12 items-center justify-center rounded-[1.35rem] text-foreground transition-all disabled:opacity-50 md:bottom-12"
     >
       {loading ? (
         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -64,9 +64,8 @@ export const LocateButton = ({ onLocate }: LocateButtonProps) => {
             <div className="absolute -inset-1 animate-ping rounded-full bg-blue-500/20" />
           )}
           <Crosshair
-            className={`relative h-5 w-5 transition-colors ${
-              error ? "text-destructive" : hasLocation ? "text-blue-500" : "text-foreground"
-            }`}
+            className={`relative h-5 w-5 transition-colors ${error ? "text-destructive" : hasLocation ? "text-blue-500" : "text-foreground"
+              }`}
           />
         </div>
       )}

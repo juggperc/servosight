@@ -585,7 +585,7 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
         )}
       </MapContainer>
 
-      <div className="pointer-events-none absolute bottom-32 left-4 right-4 z-[1000] flex flex-col gap-3 md:bottom-8 md:items-end md:right-4 md:left-auto">
+      <div className="pointer-events-none absolute bottom-32 left-4 right-4 z-[1000] flex flex-col gap-3 md:bottom-12 md:left-4 md:right-auto md:w-fit md:items-start">
         <div className="pointer-events-auto">
           <FuelFilter
             selectedFuel={selectedFuel}
@@ -608,7 +608,7 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
       <LocateButton onLocate={handleLocate} />
 
       {petrolspyMode && (
-        <div className="pointer-events-auto absolute bottom-[14rem] left-4 z-[1000] flex flex-col gap-1 md:bottom-8 md:left-4">
+        <div className="pointer-events-auto absolute bottom-[13rem] left-4 z-[1000] flex flex-col gap-1 md:bottom-32 md:left-4">
           {petrolspyError && (
             <div className="bg-black/40 backdrop-blur-md ring-1 ring-white/10 max-w-[200px] rounded-[14px] px-2.5 py-1.5 text-[10px] text-amber-500 font-medium">
               PetrolSpy: {petrolspyError}
@@ -630,29 +630,6 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
             />
             <span className="font-semibold text-amber-500">PetrolSpy</span>
           </a>
-        </div>
-      )}
-
-      {dataSource !== "loading" && (aggregateMode || petrolspyMode) && (
-        <div
-          className={`pointer-events-auto absolute left-4 bottom-[18rem] z-[1000] flex max-w-[calc(100%-6.5rem)] items-center gap-1.5 rounded-[14px] bg-black/40 backdrop-blur-md ring-1 ring-white/10 text-[10px] font-medium md:bottom-20 md:max-w-none ${compactOverlay ? "px-2 py-1.5" : "px-2.5 py-1.5"
-            }`}
-        >
-          <div
-            className={`h-1.5 w-1.5 rounded-full ${dataSource === "live" ? "bg-green-500 animate-pulse" : "bg-amber-500"
-              }`}
-          />
-          <span className="truncate text-muted-foreground">
-            {dataSource === "live" || (petrolspyMode && petrolspyStations.length > 0)
-              ? viewport.zoom < CLUSTER_BREAKPOINT_ZOOM && stationClusters.length > 0
-                ? compactOverlay
-                  ? `${visibleStations.length.toLocaleString()} · ${stationClusters.length} groups`
-                  : `${visibleStations.length.toLocaleString()} stations · ${stationClusters.length} smart groups`
-                : compactOverlay
-                  ? `${freshnessFilteredStations.length.toLocaleString()} live`
-                  : `${aggregateMode ? `${stations.length.toLocaleString()} state` : ""}${aggregateMode && petrolspyMode ? " + " : ""}${petrolspyMode && petrolspyStations.length > 0 ? `${petrolspyStations.length} PetrolSpy` : ""}`
-              : "Live data unavailable"}
-          </span>
         </div>
       )}
 
