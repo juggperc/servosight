@@ -136,70 +136,55 @@ export const StationMarker = memo(({
             </div>
           )}
 
-          <div
-            className={
-              compactPopup
-                ? "mt-3 rounded-2xl border border-border/55 bg-background/60 p-2.5"
-                : "mt-4 rounded-2xl border border-border/55 bg-background/60 p-3"
-            }
-          >
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
+          <div className="mt-3 flex flex-col gap-1.5 rounded-[18px] bg-zinc-950/80 p-1.5 ring-1 ring-white/10 backdrop-blur-xl">
+            <div className="flex items-center justify-between px-1.5 pt-0.5">
+              <div className="flex items-center gap-1.5">
                 {priceAlert ? (
-                  <BellRing className="h-3.5 w-3.5 text-blue-500" />
+                  <BellRing className="h-[13px] w-[13px] text-blue-400" />
                 ) : (
-                  <BellPlus className="h-3.5 w-3.5 text-blue-500" />
+                  <BellPlus className="h-[13px] w-[13px] text-zinc-400" />
                 )}
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Price alert
-                </p>
+                <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-300">
+                  Price Alert
+                </span>
               </div>
-              {priceAlert && onRemoveAlert ? (
+              {priceAlert && onRemoveAlert && (
                 <button
                   onClick={() => {
                     haptics.dismiss();
                     onRemoveAlert(priceAlert.id);
                   }}
                   aria-label="Remove price alert"
-                  tabIndex={0}
-                  className="rounded-full bg-background/45 p-1 text-muted-foreground transition-colors hover:bg-background/80 hover:text-foreground"
+                  className="rounded-full bg-white/10 p-0.5 text-zinc-400 transition-colors hover:bg-white/20 hover:text-white"
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <X className="h-3 w-3" />
                 </button>
-              ) : null}
+              )}
             </div>
 
-            <div className="mt-2 flex items-center gap-2">
-              <input
-                value={alertValue}
-                onChange={(event) => setAlertValue(event.target.value)}
-                type="number"
-                step="0.1"
-                min="0"
-                aria-label="Alert threshold in cents per litre"
-                className={
-                  compactPopup
-                    ? "h-8 w-full rounded-xl border border-border/60 bg-background/90 px-2.5 text-[13px] outline-none transition-colors focus:border-blue-500"
-                    : "h-9 w-full rounded-xl border border-border/60 bg-background/90 px-3 text-sm outline-none transition-colors focus:border-blue-500"
-                }
-              />
+            <div className="flex items-center gap-1.5">
+              <div className="relative flex-1">
+                <input
+                  value={alertValue}
+                  onChange={(event) => setAlertValue(event.target.value)}
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  aria-label="Alert threshold in cents per litre"
+                  className="h-7 w-full rounded-[12px] bg-white/5 pl-2 pr-6 text-[11px] font-medium text-white outline-none ring-1 ring-white/10 transition-colors focus:ring-blue-500/50"
+                />
+                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-zinc-500">
+                  c/L
+                </span>
+              </div>
               <button
                 onClick={handleSaveAlert}
                 aria-label="Save price alert"
-                tabIndex={0}
-                className={
-                  compactPopup
-                    ? "rounded-xl bg-blue-600 px-2.5 py-2 text-[11px] font-semibold text-white transition-colors hover:bg-blue-700"
-                    : "rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-700"
-                }
+                className="flex h-7 items-center justify-center rounded-[12px] bg-blue-500/20 px-3 text-[10px] font-bold text-blue-400 transition-colors hover:bg-blue-500/30"
               >
-                {priceAlert ? "Update" : "Set"}
+                {priceAlert ? "Save" : "Add"}
               </button>
             </div>
-
-            <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-              Alert me when this station drops to {alertValue || "0.0"}c/L or less.
-            </p>
           </div>
         </div>
       </Popup>
