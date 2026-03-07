@@ -44,10 +44,10 @@ export const FuelFilter = ({
           whileTap={{ scale: 0.96 }}
           transition={softSpring}
           className={cn(
-            "glass-pill shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-all",
+            "shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-all",
             selectedFuel === fuel.id
-              ? "bg-primary text-primary-foreground shadow-[0_16px_24px_rgba(15,23,42,0.16)]"
-              : "text-foreground"
+              ? "bg-neutral-900 text-white shadow-[0_16px_24px_rgba(15,23,42,0.16)] dark:bg-white dark:text-neutral-900"
+              : "glass-pill text-foreground"
           )}
         >
           {fuel.shortLabel}
