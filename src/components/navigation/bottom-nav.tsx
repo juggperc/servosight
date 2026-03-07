@@ -74,26 +74,34 @@ export const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
                         repeat: Number.POSITIVE_INFINITY,
                         duration: 5.4,
                       }}
-                      className="absolute -inset-2 rounded-full bg-[radial-gradient(circle_at_30%_28%,rgba(255,255,255,0.96),rgba(255,255,255,0.62)_28%,rgba(191,219,254,0.36)_54%,rgba(147,197,253,0.18)_70%,rgba(255,255,255,0.08)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_12px_18px_rgba(59,130,246,0.16)] ring-1 ring-white/70 dark:bg-[radial-gradient(circle_at_30%_28%,rgba(255,255,255,0.16),rgba(255,255,255,0.08)_28%,rgba(59,130,246,0.18)_56%,rgba(125,211,252,0.14)_74%,rgba(255,255,255,0.04)_100%)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_14px_22px_rgba(59,130,246,0.18)] dark:ring-white/12"
+                      className="nav-loupe nav-loupe__core"
                     />
                     <motion.div
                       layoutId="bottom-nav-loupe-gloss"
                       animate={{
-                        opacity: [0.62, 0.88, 0.62],
-                        x: [0, 2, 0],
-                        y: [0, -1, 0],
+                        opacity: [0.78, 0.96, 0.78],
+                        x: [0, 1.5, 0],
+                        y: [0, -0.5, 0],
                       }}
                       transition={{
                         duration: 3.8,
                         repeat: Number.POSITIVE_INFINITY,
                         ease: "easeInOut",
                       }}
-                      className="absolute left-0 top-0 h-4 w-5 rounded-full bg-white/75 blur-[1px] dark:bg-white/18"
+                      className="nav-loupe nav-loupe__shine"
                     />
                     <motion.div
                       layoutId="bottom-nav-icon-glow"
-                      transition={softSpring}
-                      className="absolute -inset-3 rounded-full bg-blue-400/12 blur-md dark:bg-blue-400/16"
+                      animate={{
+                        opacity: [0.42, 0.6, 0.42],
+                        scale: [0.96, 1.02, 0.96],
+                      }}
+                      transition={{
+                        duration: 4.2,
+                        repeat: Number.POSITIVE_INFINITY,
+                        ease: "easeInOut",
+                      }}
+                      className="nav-loupe nav-loupe__glow"
                     />
                   </>
                 )}
