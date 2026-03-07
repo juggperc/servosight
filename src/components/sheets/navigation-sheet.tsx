@@ -12,10 +12,12 @@ import {
   CornerUpRight,
   Flag,
   X,
+  ChevronDown,
 } from "lucide-react";
-import { Drawer as DrawerPrimitive } from "vaul";
-import { AnimatePresence, motion } from "motion/react";
-import { appleSpring, fadeUp, quickFade, softSpring } from "@/lib/motion";
+import { AnimatePresence, motion, type PanInfo } from "motion/react";
+import { fadeUp, quickFade, softSpring } from "@/lib/motion";
+import { useState, useEffect } from "react";
+import { useAppHaptics } from "@/components/haptics-provider";
 
 type NavigationSheetProps = {
   open: boolean;
@@ -57,8 +59,41 @@ export const NavigationSheet = ({
   onStartRoute,
   onClearRoute,
 }: NavigationSheetProps) => {
+  const [expanded, setExpanded] = useState(false);
+
+  // Auto-collapse when inactive/routing finishes, auto-expand on error
+  useEffect(() => {
+    if (!open) {
+      setExpanded(false);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (routeError) {
+      setExpanded(true);
+    }
+  }, [routeError]);
+
+  if (!open) return null;
+
   const upcomingStep = route?.steps[currentStepIndex] ?? null;
   const nextStep = route?.steps[currentStepIndex + 1] ?? null;
+  const haptics = useAppHaptics();
+
+  const handlePanEnd = (e: any, info: PanInfo) => {
+    const threshold = 30;
+    if (info.offset.y < -threshold) {
+      if (expanded) {
+        haptics.selection();
+        setExpanded(false);
+      }
+    } else if (info.offset.y > threshold) {
+      if (!expanded) {
+        haptics.selection();
+        setExpanded(true);
+      }
+    }
+  };
 
   const getStepIcon = (maneuverType?: string) => {
     if (maneuverType === "arrive") return Flag;
@@ -70,173 +105,194 @@ export const NavigationSheet = ({
   const UpcomingIcon = getStepIcon(upcomingStep?.maneuverType);
 
   return (
-    <DrawerPrimitive.Root
-      open={open}
-      onOpenChange={onOpenChange}
-      dismissible
-      modal={false}
-      direction="bottom"
-    >
-      <DrawerPrimitive.Portal>
-        <DrawerPrimitive.Content className="glass-panel-strong fixed inset-x-3 bottom-[4.5rem] z-[1650] mx-auto flex w-auto max-w-md flex-col rounded-[26px] outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-bottom-4 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-bottom-4 md:bottom-6 md:left-32 md:right-auto md:max-w-md md:rounded-[30px] md:w-full">
-          <DrawerPrimitive.Title className="sr-only">Satnav</DrawerPrimitive.Title>
-          <DrawerPrimitive.Description className="sr-only">
-            Compact live navigation widget with the next two turns.
-          </DrawerPrimitive.Description>
+    <div className="pointer-events-none fixed inset-x-0 top-0 z-[1650] flex justify-center p-3 pt-safe-top md:pt-4">
+      <motion.div
+        layout
+        transition={softSpring}
+        drag="y"
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={0.05}
+        onPanEnd={handlePanEnd}
+        className={`pointer-events-auto relative overflow-hidden bg-zinc-950 shadow-2xl ring-1 ring-zinc-800 origin-top ${expanded ? "w-full max-w-sm rounded-[32px] md:max-w-md" : "w-auto min-w-[200px] max-w-[280px] rounded-full md:max-w-[320px]"
+          }`}
+        onClick={() => {
+          if (!expanded) {
+            haptics.selection();
+            setExpanded(true);
+          }
+        }}
+      >
+        <AnimatePresence mode="popLayout" initial={false}>
+          {!expanded ? (
+            <motion.div
+              key="collapsed"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={quickFade}
+              className="flex items-center justify-between gap-3 px-3.5 py-2 h-10 md:h-12 md:px-4 md:py-2.5"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                {routing ? (
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Number.POSITIVE_INFINITY, duration: 1.6, ease: "linear" }}
+                    className="flex h-5 w-5 shrink-0 items-center justify-center text-blue-500"
+                  >
+                    <Loader2 className="h-4 w-4" />
+                  </motion.div>
+                ) : upcomingStep ? (
+                  <div className="flex shrink-0 items-center justify-center rounded-full bg-blue-500/20 text-blue-500 p-1">
+                    <UpcomingIcon className="h-3.5 w-3.5" />
+                  </div>
+                ) : (
+                  <Navigation className="h-4 w-4 shrink-0 text-blue-500" />
+                )}
 
-          <div className="mx-auto mt-3 h-1.5 w-12 rounded-full bg-foreground/10" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold tracking-tight text-white leading-tight">
+                    {routing ? "Routing..." : upcomingStep ? formatDistance(upcomingStep.distance) : (station?.name ?? "Satnav")}
+                  </p>
+                </div>
+              </div>
 
-          <motion.div
-            initial={fadeUp.initial}
-            animate={fadeUp.animate}
-            transition={softSpring}
-            className="space-y-2.5 p-3.5 pb-4 md:space-y-3 md:p-4 md:pb-5"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-700 ring-1 ring-blue-500/10 dark:text-blue-300">
-                    <Navigation className="h-4 w-4" />
-                  </span>
+              {route && (
+                <div className="shrink-0 text-[11px] md:text-xs font-semibold text-blue-400">
+                  {formatDuration(route.duration)}
+                </div>
+              )}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="expanded"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, transition: { duration: 0.1 } }}
+              transition={softSpring}
+              className="flex flex-col p-4 md:p-5"
+            >
+              <div className="flex items-start justify-between gap-3 mb-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-500/20 text-blue-500">
+                    <Navigation className="h-5 w-5" />
+                  </div>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold tracking-tight text-foreground">
+                    <p className="truncate text-base font-semibold tracking-tight text-white">
                       {station?.name ?? "Satnav"}
                     </p>
-                    <p className="truncate text-[11px] leading-relaxed text-muted-foreground md:text-xs">
+                    <p className="truncate text-xs text-zinc-400">
                       {station?.suburb || station?.address || "Preparing route"}
                     </p>
                   </div>
                 </div>
+
+                <div className="flex shrink-0 items-center gap-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setExpanded(false);
+                    }}
+                    aria-label="Collapse widgets"
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-zinc-400 transition-colors hover:bg-white/20 hover:text-white"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onClearRoute();
+                    }}
+                    aria-label="Stop navigation"
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-red-500/20 text-red-400 transition-colors hover:bg-red-500/30 hover:text-red-300"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
 
-              <button
-                onClick={onClearRoute}
-                aria-label="Dismiss satnav widget"
-                tabIndex={0}
-                className="rounded-full bg-background/45 p-2 text-muted-foreground transition-colors hover:bg-background/75 hover:text-foreground"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <AnimatePresence mode="wait" initial={false}>
-              {routeError ? (
-                <motion.div
-                  key="route-error"
-                  initial={fadeUp.initial}
-                  animate={fadeUp.animate}
-                  exit={fadeUp.exit}
-                  transition={quickFade}
-                  className="rounded-3xl border border-destructive/15 bg-destructive/[0.06] p-4"
-                >
-                  <p className="text-sm font-semibold text-foreground">Could not start navigation</p>
-                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{routeError}</p>
-                  <Button size="sm" className="mt-3 rounded-2xl" onClick={onStartRoute}>
-                    Retry route
-                  </Button>
-                </motion.div>
-              ) : null}
-
-              {!route && routing ? (
-                <motion.div
-                  key="routing"
-                  initial={fadeUp.initial}
-                  animate={fadeUp.animate}
-                  exit={fadeUp.exit}
-                  transition={quickFade}
-                  className="glass-panel rounded-3xl p-4"
-                >
-                  <div className="flex items-center gap-3">
+              <div className="space-y-3">
+                {routeError ? (
+                  <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4">
+                    <p className="text-sm font-semibold text-red-200">Could not start navigation</p>
+                    <p className="mt-1 text-xs text-red-300/80">{routeError}</p>
+                    <Button
+                      size="sm"
+                      className="mt-3 w-full rounded-xl bg-red-500/20 text-red-200 hover:bg-red-500/30"
+                      onClick={onStartRoute}
+                    >
+                      Retry route
+                    </Button>
+                  </div>
+                ) : !route && routing ? (
+                  <div className="rounded-2xl bg-white/5 p-4 flex items-center gap-3">
                     <motion.div
                       animate={{ rotate: 360 }}
                       transition={{ repeat: Number.POSITIVE_INFINITY, duration: 1.6, ease: "linear" }}
-                      className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-700 dark:text-blue-300"
+                      className="text-blue-500"
                     >
                       <Loader2 className="h-5 w-5" />
                     </motion.div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-card-foreground">Routing now</p>
-                      <p className="text-xs leading-relaxed text-muted-foreground">
-                        Locking onto your location and drawing the first turn.
-                      </p>
+                    <div>
+                      <p className="text-sm font-semibold text-white">Routing now</p>
+                      <p className="text-xs text-zinc-400">Locking onto your location...</p>
                     </div>
                   </div>
-                </motion.div>
-              ) : null}
+                ) : route && upcomingStep ? (
+                  <>
+                    <div className="rounded-[24px] bg-gradient-to-br from-blue-500/20 to-blue-500/5 p-4 ring-1 ring-blue-500/20">
+                      <div className="flex items-start gap-3">
+                        <div className="mt-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] bg-blue-500 text-white shadow-lg shadow-blue-500/30">
+                          <UpcomingIcon className="h-6 w-6" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold uppercase tracking-wider text-blue-400">
+                            In {formatDistance(upcomingStep.distance)}
+                          </p>
+                          <p className="mt-0.5 text-lg font-bold leading-tight tracking-tight text-white">
+                            {upcomingStep.instruction}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
 
-              {route && upcomingStep ? (
-                <motion.div
-                  key={`${currentStepIndex}-${upcomingStep.instruction}`}
-                  initial={fadeUp.initial}
-                  animate={fadeUp.animate}
-                  exit={fadeUp.exit}
-                  transition={appleSpring}
-                  className="space-y-3"
-                >
-                  <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-medium text-muted-foreground md:gap-2 md:text-[11px]">
-                    <span className="rounded-full bg-blue-500/10 px-2.5 py-1 text-blue-700 dark:text-blue-300">
-                      Step {Math.min(currentStepIndex + 1, route.steps.length)}/{route.steps.length}
-                    </span>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-background/45 px-2 py-1">
-                      <RouteIcon className="h-3.5 w-3.5" />
-                      {formatDistance(route.distance)}
-                    </span>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-background/45 px-2 py-1">
-                      <Clock3 className="h-3.5 w-3.5" />
-                      {formatDuration(route.duration)}
-                    </span>
-                  </div>
-
-                  <motion.div
-                    layout
-                    transition={appleSpring}
-                    className="rounded-[20px] bg-gradient-to-br from-blue-500/16 via-blue-500/[0.08] to-background/90 p-3.5 ring-1 ring-blue-500/12 md:rounded-[24px] md:p-4"
-                  >
-                    <div className="flex items-start gap-3">
-                      <motion.div
-                        layout
-                        transition={appleSpring}
-                        className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-500/20 md:h-11 md:w-11"
-                      >
-                        <UpcomingIcon className="h-5 w-5" />
-                      </motion.div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-700 dark:text-blue-300">
-                          Upcoming
+                    <div className="flex gap-2">
+                      <div className="flex-1 rounded-[22px] bg-white/5 p-3.5 md:p-4">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                          ETA
                         </p>
-                        <p className="mt-1 text-base font-semibold leading-tight tracking-tight text-foreground md:text-lg">
-                          {upcomingStep.instruction}
+                        <p className="mt-1 flex items-center gap-1.5 text-sm md:text-base font-semibold text-white">
+                          <Clock3 className="h-4 w-4 text-blue-400" />
+                          {formatDuration(route.duration)}
                         </p>
-                        <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground md:mt-2 md:text-sm">
-                          In {formatDistance(upcomingStep.distance)} · {formatDuration(upcomingStep.duration)}
+                      </div>
+                      <div className="flex-1 rounded-[22px] bg-white/5 p-3.5 md:p-4">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                          Distance
+                        </p>
+                        <p className="mt-1 flex items-center gap-1.5 text-sm md:text-base font-semibold text-white">
+                          <RouteIcon className="h-4 w-4 text-blue-400" />
+                          {formatDistance(route.distance)}
                         </p>
                       </div>
                     </div>
-                  </motion.div>
 
-                  <motion.div
-                    layout
-                    transition={appleSpring}
-                    className="glass-panel rounded-[18px] px-3.5 py-2.5 md:rounded-[22px] md:px-4 md:py-3"
-                  >
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                      Then
-                    </p>
-                    <p className="mt-1 truncate text-sm font-medium tracking-tight text-card-foreground">
-                      {nextStep?.instruction ?? "Arrive at your selected station"}
-                    </p>
-                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                      {nextStep
-                        ? `${formatDistance(nextStep.distance)} · ${formatDuration(nextStep.duration)}`
-                        : "Live guidance will keep updating as you move."}
-                    </p>
-                  </motion.div>
-                </motion.div>
-              ) : null}
-            </AnimatePresence>
-          </motion.div>
-        </DrawerPrimitive.Content>
-      </DrawerPrimitive.Portal>
-    </DrawerPrimitive.Root>
+                    {nextStep && (
+                      <div className="rounded-[22px] bg-white/5 px-4 py-3.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                          Then
+                        </p>
+                        <p className="mt-0.5 truncate text-sm font-medium text-white">
+                          {nextStep.instruction}
+                        </p>
+                      </div>
+                    )}
+                  </>
+                ) : null}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    </div>
   );
 };
