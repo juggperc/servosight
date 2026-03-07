@@ -1,6 +1,6 @@
 "use client";
 
-import { Map, Plus, Search, Flame, Settings } from "lucide-react";
+import { Map, Plus, LineChart, Flame, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "motion/react";
 import { appleSpring, softSpring } from "@/lib/motion";
@@ -16,7 +16,7 @@ type BottomNavProps = {
 const tabs: { id: TabId; label: string; icon: typeof Map }[] = [
   { id: "map", label: "Map", icon: Map },
   { id: "submit", label: "Report", icon: Plus },
-  { id: "search", label: "Search", icon: Search },
+  { id: "search", label: "Forecast", icon: LineChart },
   { id: "deals", label: "Deals", icon: Flame },
   { id: "settings", label: "Settings", icon: Settings },
 ];
