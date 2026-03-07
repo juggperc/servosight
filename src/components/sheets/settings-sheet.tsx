@@ -53,6 +53,7 @@ export const SettingsSheet = ({ open, onOpenChange }: SettingsSheetProps) => {
   const [defaultFuel, setDefaultFuel] = useLocalStorage<FuelTypeId>("servo-default-fuel", "u91");
   const [defaultRadius, setDefaultRadius] = useLocalStorage<number>("servo-default-radius", 10);
   const [petrolspyMode, setPetrolspyMode] = useLocalStorage<boolean>("servo-petrolspy-mode", false);
+  const [aggregateMode, setAggregateMode] = useLocalStorage<boolean>("servo-aggregate-mode", true);
 
   const [showQr, setShowQr] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -148,11 +149,33 @@ export const SettingsSheet = ({ open, onOpenChange }: SettingsSheetProps) => {
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Zap className="h-5 w-5 text-amber-500" />
+              <Zap className="h-5 w-5 text-green-500" />
+              <div>
+                <Label className="text-sm font-medium">Aggregate Data (Beta)</Label>
+                <p className="text-xs text-muted-foreground">
+                  Show live state data (NSW & WA)
+                </p>
+              </div>
+            </div>
+            <Switch
+              checked={aggregateMode}
+              onCheckedChange={(c) => {
+                haptics.toggleChange(c);
+                setAggregateMode(c);
+              }}
+              aria-label="Toggle Aggregate data overlay"
+            />
+          </div>
+
+          <Separator />
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Fuel className="h-5 w-5 text-amber-500" />
               <div>
                 <Label className="text-sm font-medium">PetrolSpy Prices</Label>
                 <p className="text-xs text-muted-foreground">
-                  Show crowdsourced prices from PetrolSpy (VIC & more)
+                  Show crowdsourced prices from PetrolSpy
                 </p>
               </div>
             </div>

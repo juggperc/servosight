@@ -5,14 +5,20 @@ import {
   mapNswFuelCode,
   type NswStation,
 } from "@/lib/nsw-fuel-api";
+import { fetchWaPricesBundle, type WaStation } from "@/lib/wa-fuel-api";
 
 // User-submitted prices overlay
 let userPriceReports: PriceReport[] = [];
 
-// Cached converted NSW live data
-let liveStations: Station[] = [];
-let livePricesMap: Map<string, { fuelType: FuelTypeId; price: number; reportedAt: string }[]> = new Map();
+// Cached converted live data
+let nswStations: Station[] = [];
+let nswPricesMap: Map<string, { fuelType: FuelTypeId; price: number; reportedAt: string }[]> = new Map();
 let lastNswSync = 0;
+
+let waStations: Station[] = [];
+let waPricesMap: Map<string, { fuelType: FuelTypeId; price: number; reportedAt: string }[]> = new Map();
+let lastWaSync = 0;
+
 let liveDataAvailable = false;
 
 const NSW_SYNC_INTERVAL_MS = 60 * 60 * 1000;
@@ -76,19 +82,67 @@ const syncNswData = async (): Promise<void> => {
     pMap.set(stationKey, existing);
   }
 
-  liveStations = Array.from(stationMap.values()).filter((s) => s.fuelTypes.length > 0);
-  livePricesMap = pMap;
-  liveDataAvailable = liveStations.length > 0;
+  nswStations = Array.from(stationMap.values()).filter((s) => s.fuelTypes.length > 0);
+  nswPricesMap = pMap;
+  liveDataAvailable = nswStations.length > 0 || waStations.length > 0;
   lastNswSync = now;
 
-  console.log(`[Store] NSW live sync: ${liveStations.length} stations, ${bundle.prices.length} prices`);
+  console.log(`[Store] NSW live sync: ${nswStations.length} stations, ${bundle.prices.length} prices`);
+};
+
+const WA_SYNC_INTERVAL_MS = 60 * 60 * 1000;
+
+const convertWaStation = (s: WaStation, pMap: Map<string, { fuelType: FuelTypeId; price: number; reportedAt: string }[]>): Station => {
+  const prices = pMap.get(s.id) || [];
+  const fuelTypes = Array.from(new Set(prices.map(p => p.fuelType)));
+  return {
+    ...s,
+    state: "WA",
+    fuelTypes,
+    hasHydrogen: false,
+    hasEv: false,
+  };
+};
+
+const syncWaData = async (): Promise<void> => {
+  const now = Date.now();
+  if (now - lastWaSync < WA_SYNC_INTERVAL_MS) return;
+
+  const bundle = await fetchWaPricesBundle();
+
+  if (!bundle?.stations?.length || !bundle.prices?.length) {
+    lastWaSync = now;
+    return;
+  }
+
+  const pMap = new Map<string, { fuelType: FuelTypeId; price: number; reportedAt: string }[]>();
+
+  for (const p of bundle.prices) {
+    const existing = pMap.get(p.stationId) ?? [];
+    existing.push({
+      fuelType: p.fuelType,
+      price: p.price,
+      reportedAt: p.reportedAt,
+    });
+    pMap.set(p.stationId, existing);
+  }
+
+  const stationMap = new Map<string, Station>();
+  for (const s of bundle.stations) {
+    stationMap.set(s.id, convertWaStation(s, pMap));
+  }
+
+  waStations = Array.from(stationMap.values()).filter((s) => s.fuelTypes.length > 0);
+  waPricesMap = pMap;
+  liveDataAvailable = nswStations.length > 0 || waStations.length > 0;
+  lastWaSync = now;
 };
 
 // ── Public API ──
 
 const getAllStations = async (): Promise<Station[]> => {
-  await syncNswData();
-  return liveStations;
+  await Promise.all([syncNswData(), syncWaData()]);
+  return [...nswStations, ...waStations];
 };
 
 export const getStation = async (id: string): Promise<Station | undefined> => {
@@ -101,7 +155,7 @@ const getLatestPrices = (
 ): Record<FuelTypeId, { price: number; reportedAt: string } | undefined> => {
   const latest: Record<string, { price: number; reportedAt: string } | undefined> = {};
 
-  const stationPrices = livePricesMap.get(stationId);
+  const stationPrices = nswPricesMap.get(stationId) || waPricesMap.get(stationId);
   if (stationPrices) {
     for (const p of stationPrices) {
       if (!latest[p.fuelType] || new Date(p.reportedAt) > new Date(latest[p.fuelType]!.reportedAt)) {

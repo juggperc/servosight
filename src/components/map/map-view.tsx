@@ -179,11 +179,15 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
   const [showEv, setShowEv] = useState(false);
   const [freshness, setFreshness] = useState<FreshnessFilterId>("any");
   const [flyTo, setFlyTo] = useState<FlyToState | null>(null);
-  const [dataSource, setDataSource] = useState<"loading" | "live" | "unavailable">("loading");
+  const [dataSource, setDataSource] = useState<"loading" | "live" | "unavailable" | "disabled">("loading");
   const [priceAlerts, setPriceAlerts] = useLocalStorage<PriceAlert[]>("servo-price-alerts", []);
+
+  const [aggregateMode] = useLocalStorage<boolean>("servo-aggregate-mode", true);
   const [petrolspyMode] = useLocalStorage<boolean>("servo-petrolspy-mode", false);
+
   const [petrolspyStations, setPetrolspyStations] = useState<StationWithPrices[]>([]);
   const [petrolspyLoading, setPetrolspyLoading] = useState(false);
+  const [petrolspyError, setPetrolspyError] = useState<string | null>(null);
   const [alertToasts, setAlertToasts] = useState<AlertToast[]>([]);
   const [viewport, setViewport] = useState<ViewportState>({
     zoom: DEFAULT_ZOOM,
@@ -193,6 +197,12 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
 
   const fetchStations = useCallback(
     async (signal?: AbortSignal) => {
+      if (!aggregateMode) {
+        setStations([]);
+        setDataSource("disabled");
+        return;
+      }
+
       const params = new URLSearchParams({ fuelType: selectedFuel });
       if (showHydrogen) params.set("hasHydrogen", "true");
       if (showEv) params.set("hasEv", "true");
@@ -210,7 +220,7 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
         }
       }
     },
-    [selectedFuel, showHydrogen, showEv]
+    [selectedFuel, showHydrogen, showEv, aggregateMode]
   );
 
   useEffect(() => {
@@ -223,19 +233,23 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
     async (centerLat: number, centerLng: number, signal?: AbortSignal) => {
       if (!petrolspyMode) return;
       setPetrolspyLoading(true);
+      setPetrolspyError(null);
       try {
         const res = await fetch(
           `/api/petrolspy?lat=${centerLat}&lng=${centerLng}`,
           { signal }
         );
-        if (res.ok) {
-          const data = await res.json();
-          setPetrolspyStations(Array.isArray(data) ? data : []);
-        } else {
-          setPetrolspyStations([]);
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : data?.stations ?? [];
+        if (!signal?.aborted) {
+          setPetrolspyStations(list);
+          setPetrolspyError(list.length === 0 && data?.error ? data.error : null);
         }
       } catch {
-        if (!signal?.aborted) setPetrolspyStations([]);
+        if (!signal?.aborted) {
+          setPetrolspyStations([]);
+          setPetrolspyError("Request failed");
+        }
       } finally {
         if (!signal?.aborted) setPetrolspyLoading(false);
       }
@@ -246,6 +260,7 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
   useEffect(() => {
     if (!petrolspyMode || !viewport.bounds) {
       setPetrolspyStations([]);
+      setPetrolspyError(null);
       return;
     }
     const center = viewport.bounds.getCenter();
@@ -379,10 +394,10 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
           return previous.map((alert) =>
             alert.id === existing.id
               ? {
-                  ...alert,
-                  threshold,
-                  createdAt: new Date().toISOString(),
-                }
+                ...alert,
+                threshold,
+                createdAt: new Date().toISOString(),
+              }
               : alert
           );
         }
@@ -588,45 +603,50 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
       <LocateButton onLocate={handleLocate} />
 
       {petrolspyMode && (
-        <a
-          href="https://petrolspy.com.au"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="glass-pill pointer-events-auto absolute bottom-20 left-4 z-[1000] flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground md:bottom-4 md:left-4"
-          aria-label="PetrolSpy – fuel data attribution"
-        >
-          <img
-            src="https://petrolspy.com.au/favicon.ico"
-            alt=""
-            className="h-3.5 w-3.5"
-            width={14}
-            height={14}
-          />
-          <span className="font-semibold text-amber-600 dark:text-amber-500">PetrolSpy</span>
-        </a>
+        <div className="pointer-events-auto absolute bottom-20 left-4 z-[1000] flex flex-col gap-1 md:bottom-4 md:left-4">
+          {petrolspyError && (
+            <div className="glass-pill max-w-[200px] rounded-lg px-2 py-1 text-[10px] text-amber-600 dark:text-amber-500">
+              PetrolSpy: {petrolspyError}
+            </div>
+          )}
+          <a
+            href="https://petrolspy.com.au"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="glass-pill flex w-fit items-center gap-1.5 rounded-lg px-2 py-1.5 text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+            aria-label="PetrolSpy – fuel data attribution"
+          >
+            <img
+              src="https://petrolspy.com.au/favicon.ico"
+              alt=""
+              className="h-3.5 w-3.5"
+              width={14}
+              height={14}
+            />
+            <span className="font-semibold text-amber-600 dark:text-amber-500">PetrolSpy</span>
+          </a>
+        </div>
       )}
 
-      {dataSource !== "loading" && (
+      {dataSource !== "loading" && (aggregateMode || petrolspyMode) && (
         <div
-          className={`above-bottom-nav glass-pill absolute left-4 z-[1000] flex max-w-[calc(100%-6.5rem)] items-center gap-1.5 rounded-full text-[10px] font-medium md:bottom-4 md:max-w-none ${
-            compactOverlay ? "px-2 py-1" : "px-2.5 py-1"
-          }`}
+          className={`above-bottom-nav glass-pill absolute left-4 z-[1000] flex max-w-[calc(100%-6.5rem)] items-center gap-1.5 rounded-full text-[10px] font-medium md:bottom-4 md:max-w-none ${compactOverlay ? "px-2 py-1" : "px-2.5 py-1"
+            }`}
         >
           <div
-            className={`h-1.5 w-1.5 rounded-full ${
-              dataSource === "live" ? "bg-green-500 animate-pulse" : "bg-amber-500"
-            }`}
+            className={`h-1.5 w-1.5 rounded-full ${dataSource === "live" ? "bg-green-500 animate-pulse" : "bg-amber-500"
+              }`}
           />
           <span className="truncate text-muted-foreground">
-            {dataSource === "live"
+            {dataSource === "live" || (petrolspyMode && petrolspyStations.length > 0)
               ? viewport.zoom < CLUSTER_BREAKPOINT_ZOOM && stationClusters.length > 0
                 ? compactOverlay
                   ? `${visibleStations.length.toLocaleString()} · ${stationClusters.length} groups`
                   : `${visibleStations.length.toLocaleString()} stations · ${stationClusters.length} smart groups`
                 : compactOverlay
                   ? `${freshnessFilteredStations.length.toLocaleString()} live`
-                  : `${freshnessFilteredStations.length.toLocaleString()} live NSW/TAS stations${petrolspyMode && petrolspyStations.length > 0 ? ` + ${petrolspyStations.length} PetrolSpy` : ""}`
-              : "Live NSW data unavailable"}
+                  : `${aggregateMode ? `${stations.length.toLocaleString()} state` : ""}${aggregateMode && petrolspyMode ? " + " : ""}${petrolspyMode && petrolspyStations.length > 0 ? `${petrolspyStations.length} PetrolSpy` : ""}`
+              : "Live data unavailable"}
           </span>
         </div>
       )}
@@ -649,11 +669,11 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
         ))}
       </div>
 
-      {dataSource === "unavailable" && (
+      {dataSource === "unavailable" && aggregateMode && (
         <div className="glass-panel-strong pointer-events-none absolute inset-x-4 top-24 z-[1000] mx-auto max-w-sm rounded-[1.6rem] p-4 text-center">
-          <p className="text-sm font-semibold text-foreground">Waiting for live NSW data</p>
+          <p className="text-sm font-semibold text-foreground">Waiting for live data</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Fuel data is loaded from the NSW Government API. Once it responds, stations will
+            Fuel data is loaded from State APIs. Once it responds, stations will
             appear here and users can keep prices fresh by reporting updates.
           </p>
         </div>

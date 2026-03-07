@@ -114,15 +114,19 @@ export const GET = async (request: NextRequest) => {
     const res = await fetch(url, {
       headers: {
         "User-Agent":
-          "Mozilla/5.0 (compatible; ServoSight/1.0; +https://github.com/juggperc/servosight)",
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-AU,en;q=0.9",
       },
-      signal: AbortSignal.timeout(15000),
+      cache: "no-store",
+      signal: AbortSignal.timeout(20000),
     });
 
     if (!res.ok) {
       return NextResponse.json(
-        { error: `PetrolSpy returned ${res.status}` },
-        { status: 502 }
+        { stations: [], error: `PetrolSpy returned ${res.status}` },
+        { status: 200 }
       );
     }
 
@@ -158,9 +162,21 @@ export const GET = async (request: NextRequest) => {
       }
     }
 
-    return NextResponse.json(stations);
+    if (stations.length === 0) {
+      const stationRe = /([A-Za-z0-9\s\-&'\.]+?)\s*[–-]\s*((?:Unleaded|U91|E10|U95|U98|Diesel|LPG|P\.?\s*Diesel)[^<]+)/gi;
+      let m: RegExpExecArray | null;
+      while ((m = stationRe.exec(html)) !== null) {
+        const line = `${m[1].trim()} – ${m[2].replace(/<[^>]+>/g, "").trim()}`;
+        if (line.length >= 25) tryAddStation(line, stations.length);
+      }
+    }
+
+    return NextResponse.json({
+      stations,
+      error: stations.length === 0 ? "No stations found for this area" : undefined,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to fetch PetrolSpy data";
-    return NextResponse.json({ error: message }, { status: 502 });
+    return NextResponse.json({ stations: [], error: message }, { status: 200 });
   }
 };
