@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import type { RouteData, StationWithPrices } from "@/lib/types";
+import type { StationWithPrices } from "@/lib/types";
 
 const MapView = dynamic(() => import("./map-view").then((mod) => mod.MapView), {
   ssr: false,
@@ -27,16 +27,9 @@ const MapView = dynamic(() => import("./map-view").then((mod) => mod.MapView), {
 
 type DynamicMapProps = {
   onStationSelect?: (station: StationWithPrices) => void;
-  activeRoute?: RouteData | null;
   navLocation?: { lat: number; lng: number } | null;
 };
 
-export const DynamicMap = ({ onStationSelect, activeRoute, navLocation }: DynamicMapProps) => {
-  return (
-    <MapView
-      onStationSelect={onStationSelect}
-      activeRoute={activeRoute}
-      navLocation={navLocation}
-    />
-  );
+export const DynamicMap = ({ onStationSelect, navLocation }: DynamicMapProps) => {
+  return <MapView onStationSelect={onStationSelect} navLocation={navLocation} />;
 };

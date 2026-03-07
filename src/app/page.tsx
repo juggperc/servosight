@@ -174,11 +174,7 @@ const HomePage = () => {
   return (
     <main className="fixed inset-0 overflow-hidden">
       <div className="h-full w-full md:pl-20">
-        <DynamicMap
-          onStationSelect={handleStationSelect}
-          activeRoute={activeRoute}
-          navLocation={navLocation}
-        />
+        <DynamicMap onStationSelect={handleStationSelect} navLocation={navLocation} />
       </div>
 
       <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
