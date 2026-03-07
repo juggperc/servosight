@@ -18,6 +18,7 @@ export const DonatePopup = ({ compact = false }: { compact?: boolean }) => {
   const { resolvedTheme } = useTheme();
   const [dismissed, setDismissed] = useLocalStorage("servo-donate-dismissed", false);
   const [expanded, setExpanded] = useState(false);
+  const [toastExpanded, setToastExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   const [visible, setVisible] = useState(false);
 
@@ -52,50 +53,93 @@ export const DonatePopup = ({ compact = false }: { compact?: boolean }) => {
       <AnimatePresence>
         {!expanded && (
           <motion.div
-            initial={{ opacity: 0, x: -20, y: 10, filter: "blur(8px)" }}
-            animate={{ opacity: 1, x: 0, y: 0, filter: "blur(0px)" }}
-            exit={{ opacity: 0, x: -14, y: 8, filter: "blur(8px)" }}
-            transition={softSpring}
+            layout
+            initial={{ opacity: 0, y: -40, scale: 0.8, filter: "blur(10px)" }}
+            animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+            exit={{ opacity: 0, scale: 0.9, filter: "blur(8px)", transition: { duration: 0.2 } }}
+            transition={appleSpring}
             className={cn(
-              "above-bottom-nav glass-pill fixed left-4 z-[1500] flex items-center gap-2 rounded-full px-3 py-2 md:bottom-4 md:left-32",
-              compact && "max-md:left-auto max-md:right-4 max-md:px-2.5 max-md:py-1.5"
+              "fixed top-3 z-[2000] mx-auto overflow-hidden bg-zinc-950/80 ring-1 ring-white/10 backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.3)] transform-gpu will-change-transform mt-safe",
+              toastExpanded
+                ? "rounded-[2rem] w-[calc(100%-24px)] md:w-[380px] left-3 md:left-1/2 md:-translate-x-1/2"
+                : "rounded-full w-fit left-1/2 -translate-x-1/2"
             )}
           >
-            <motion.button
-              onClick={() => {
-                haptics.selection();
-                setExpanded(true);
-              }}
-              whileHover={{ y: -1 }}
-              whileTap={{ scale: 0.98 }}
-              transition={quickFade}
-              className="flex items-center gap-2 text-xs font-medium text-foreground"
-              aria-label="Show Bitcoin donation info"
-              tabIndex={0}
-            >
-              <div className="relative flex h-6 w-6 items-center justify-center rounded-full bg-orange-500/12 text-orange-500">
-                <motion.div
-                  animate={{ scale: [1, 1.18, 1], opacity: [0.16, 0.32, 0.16] }}
-                  transition={{ duration: 2.6, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
-                  className="absolute inset-0 rounded-full bg-orange-500/30"
-                />
-                <Heart className="relative h-3.5 w-3.5" />
-              </div>
-              <div className="flex flex-col items-start leading-none">
-                <span className="text-[11px] font-semibold">{compact ? "Support" : "Support via BTC"}</span>
-                {!compact && (
-                  <span className="text-[10px] text-muted-foreground">Help keep prices live and independent</span>
-                )}
-              </div>
-            </motion.button>
-            <button
-              onClick={handleDismiss}
-              className="ml-1 rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-              aria-label="Dismiss donation prompt"
-              tabIndex={0}
-            >
-              <X className="h-3 w-3" />
-            </button>
+            {/* COMPACT STAGE */}
+            {!toastExpanded && (
+              <motion.button
+                layout="position"
+                onClick={() => {
+                  haptics.selection();
+                  setToastExpanded(true);
+                }}
+                className="flex items-center gap-2 px-3 py-2"
+                aria-label="Show Bitcoin donation info"
+              >
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-orange-500/20 text-orange-500">
+                  <motion.div
+                    animate={{ scale: [1, 1.25, 1], opacity: [0.2, 0.5, 0.2] }}
+                    transition={{ duration: 2.6, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+                    className="absolute inset-0 rounded-full bg-orange-500/30"
+                  />
+                  <Heart className="relative h-3 w-3" />
+                </div>
+                <span className="text-[12px] font-semibold text-zinc-100 tracking-tight pr-1">Support ServoSight</span>
+              </motion.button>
+            )}
+
+            {/* EXPANDED STAGE */}
+            {toastExpanded && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.25, delay: 0.05, ease: "easeOut" }}
+                className="flex flex-col p-4 w-full"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500/20 text-orange-500">
+                      <Heart className="h-4 w-4" />
+                    </div>
+                    <span className="text-[13px] font-bold text-zinc-100 tracking-tight">Support ServoSight</span>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      haptics.selection();
+                      setToastExpanded(false);
+                    }}
+                    className="rounded-full bg-white/10 p-1.5 text-zinc-400 transition-colors hover:text-white hover:bg-white/20"
+                    aria-label="Collapse notification"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <p className="text-[12.5px] leading-relaxed text-zinc-300 mb-4 tracking-tight">
+                  Running a live tool like this for free isn't cheap. We rely entirely on community Bitcoin donations to pay for servers and keep the app independent. If we save you money at the pump, please consider sending a few sats!
+                </p>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      haptics.success();
+                      setExpanded(true);
+                      setToastExpanded(false);
+                    }}
+                    className="flex-1 rounded-[14px] bg-orange-500 text-white font-bold text-[13px] py-2.5 transition-colors hover:bg-orange-600 shadow-[0_4px_14px_rgba(249,115,22,0.3)]"
+                  >
+                    Donate BTC
+                  </button>
+                  <button
+                    onClick={handleDismiss}
+                    className="px-5 rounded-[14px] bg-white/10 text-zinc-300 font-bold text-[13px] transition-colors hover:bg-white/20"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </motion.div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
