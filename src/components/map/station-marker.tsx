@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import { useAppHaptics } from "@/components/haptics-provider";
@@ -33,7 +33,7 @@ const tierColors: Record<string, string> = {
   expensive: "#dc2626",
 };
 
-export const StationMarker = ({
+export const StationMarker = memo(({
   station,
   selectedFuel,
   cheapThreshold,
@@ -205,4 +205,11 @@ export const StationMarker = ({
       </Popup>
     </Marker>
   );
-};
+}, (prev, next) => {
+  return prev.station.id === next.station.id &&
+    prev.selectedFuel === next.selectedFuel &&
+    prev.cheapThreshold === next.cheapThreshold &&
+    prev.compactPopup === next.compactPopup;
+});
+
+StationMarker.displayName = "StationMarker";

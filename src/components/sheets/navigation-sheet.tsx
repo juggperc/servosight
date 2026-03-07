@@ -113,7 +113,7 @@ export const NavigationSheet = ({
         dragConstraints={{ top: 0, bottom: 0 }}
         dragElastic={0.05}
         onPanEnd={handlePanEnd}
-        className={`pointer-events-auto relative overflow-hidden bg-zinc-950 shadow-2xl ring-1 ring-zinc-800 origin-top ${expanded ? "w-full max-w-sm rounded-[32px] md:max-w-md" : "w-auto min-w-[200px] max-w-[280px] rounded-full md:max-w-[320px]"
+        className={`pointer-events-auto relative overflow-hidden bg-zinc-950 shadow-2xl ring-1 ring-zinc-800 origin-top transform-gpu will-change-transform ${expanded ? "w-full max-w-sm rounded-[32px] md:max-w-md" : "w-auto min-w-[200px] max-w-[280px] rounded-full md:max-w-[320px]"
           }`}
         onClick={() => {
           if (!expanded) {

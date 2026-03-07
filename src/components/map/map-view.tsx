@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef, memo } from "react";
 import {
   CircleMarker,
   MapContainer,
@@ -128,7 +128,7 @@ const getClusterColumns = (zoom: number): number => {
   return 18;
 };
 
-const ClusterMarker = ({
+const ClusterMarker = memo(({
   cluster,
   onSelect,
 }: {
@@ -169,7 +169,7 @@ const ClusterMarker = ({
       }}
     />
   );
-};
+}, (prev, next) => prev.cluster.id === next.cluster.id && prev.cluster.count === next.cluster.count && prev.cluster.minPrice === next.cluster.minPrice);
 
 export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }: MapViewProps) => {
   const haptics = useAppHaptics();
@@ -182,8 +182,7 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
   const [dataSource, setDataSource] = useState<"loading" | "live" | "unavailable" | "disabled">("loading");
   const [priceAlerts, setPriceAlerts] = useLocalStorage<PriceAlert[]>("servo-price-alerts", []);
 
-  const [aggregateMode] = useLocalStorage<boolean>("servo-aggregate-mode", true);
-  const [petrolspyMode] = useLocalStorage<boolean>("servo-petrolspy-mode", false);
+  const [countrywideMode] = useLocalStorage<boolean>("servo-countrywide-mode", true);
 
   const [petrolspyStations, setPetrolspyStations] = useState<StationWithPrices[]>([]);
   const [petrolspyLoading, setPetrolspyLoading] = useState(false);
@@ -197,7 +196,7 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
 
   const fetchStations = useCallback(
     async (signal?: AbortSignal) => {
-      if (!aggregateMode) {
+      if (!countrywideMode) {
         setStations([]);
         setDataSource("disabled");
         return;
@@ -220,7 +219,7 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
         }
       }
     },
-    [selectedFuel, showHydrogen, showEv, aggregateMode]
+    [selectedFuel, showHydrogen, showEv, countrywideMode]
   );
 
   useEffect(() => {
@@ -231,7 +230,7 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
 
   const fetchPetrolspy = useCallback(
     async (centerLat: number, centerLng: number, signal?: AbortSignal) => {
-      if (!petrolspyMode) return;
+      if (!countrywideMode) return;
       setPetrolspyLoading(true);
       setPetrolspyError(null);
       try {
@@ -254,11 +253,11 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
         if (!signal?.aborted) setPetrolspyLoading(false);
       }
     },
-    [petrolspyMode]
+    [countrywideMode]
   );
 
   useEffect(() => {
-    if (!petrolspyMode || !viewport.bounds) {
+    if (!countrywideMode || !viewport.bounds) {
       setPetrolspyStations([]);
       setPetrolspyError(null);
       return;
@@ -272,7 +271,7 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [petrolspyMode, viewport.bounds, fetchPetrolspy]);
+  }, [countrywideMode, viewport.bounds, fetchPetrolspy]);
 
   const combinedStations = useMemo(
     () => [...stations, ...petrolspyStations],
@@ -607,29 +606,19 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
 
       <LocateButton onLocate={handleLocate} />
 
-      {petrolspyMode && (
+      {countrywideMode && petrolspyError && (
         <div className="pointer-events-auto absolute bottom-[13rem] left-4 z-[1000] flex flex-col gap-1 md:bottom-32 md:left-4">
-          {petrolspyError && (
-            <div className="bg-black/40 backdrop-blur-md ring-1 ring-white/10 max-w-[200px] rounded-[14px] px-2.5 py-1.5 text-[10px] text-amber-500 font-medium">
-              PetrolSpy: {petrolspyError}
-            </div>
-          )}
-          <a
-            href="https://petrolspy.com.au"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bg-black/40 backdrop-blur-md ring-1 ring-white/10 flex w-fit items-center gap-1.5 rounded-[14px] px-2.5 py-1.5 text-[10px] font-medium text-zinc-300 transition-colors hover:text-white"
-            aria-label="PetrolSpy – fuel data attribution"
-          >
-            <img
-              src="https://petrolspy.com.au/favicon.ico"
-              alt=""
-              className="h-3.5 w-3.5"
-              width={14}
-              height={14}
-            />
-            <span className="font-semibold text-amber-500">PetrolSpy</span>
-          </a>
+          <div className="bg-black/40 backdrop-blur-md ring-1 ring-white/10 max-w-[200px] rounded-[14px] px-2.5 py-1.5 text-[10px] text-amber-500 font-medium">
+            Live Feed: {petrolspyError}
+          </div>
+        </div>
+      )}
+
+      {countrywideMode && (
+        <div className="pointer-events-none absolute bottom-[13rem] right-4 z-[1000] md:bottom-32 md:right-4">
+          <div className="rounded-full bg-black/40 backdrop-blur-md px-2.5 py-1.5 ring-1 ring-white/10 shadow-lg">
+            <span className="text-[9px] font-bold text-white/50 uppercase tracking-[0.15em] pl-1 pr-0.5">ServoSight Countrywide</span>
+          </div>
         </div>
       )}
 
@@ -651,7 +640,7 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
         ))}
       </div>
 
-      {dataSource === "unavailable" && aggregateMode && (
+      {dataSource === "unavailable" && countrywideMode && (
         <div className="glass-panel-strong pointer-events-none absolute inset-x-4 top-24 z-[1000] mx-auto max-w-sm rounded-[1.6rem] p-4 text-center">
           <p className="text-sm font-semibold text-foreground">Waiting for live data</p>
           <p className="mt-1 text-xs text-muted-foreground">

@@ -52,35 +52,12 @@ export const SettingsSheet = ({ open, onOpenChange }: SettingsSheetProps) => {
   const { resolvedTheme, setTheme } = useTheme();
   const [defaultFuel, setDefaultFuel] = useLocalStorage<FuelTypeId>("servo-default-fuel", "u91");
   const [defaultRadius, setDefaultRadius] = useLocalStorage<number>("servo-default-radius", 10);
-  const [petrolspyMode, setPetrolspyMode] = useLocalStorage<boolean>("servo-petrolspy-mode", false);
-  const [aggregateMode, setAggregateMode] = useLocalStorage<boolean>("servo-aggregate-mode", true);
+  const [countrywideMode, setCountrywideMode] = useLocalStorage<boolean>("servo-countrywide-mode", true);
 
   const [showQr, setShowQr] = useState(false);
   const [copied, setCopied] = useState(false);
   const [petrolspyDisclaimerOpen, setPetrolspyDisclaimerOpen] = useState(false);
   const isDark = resolvedTheme === "dark";
-
-  const handlePetrolspyToggle = useCallback(
-    (checked: boolean) => {
-      if (checked) {
-        setPetrolspyDisclaimerOpen(true);
-      } else {
-        haptics.toggleChange(false);
-        setPetrolspyMode(false);
-      }
-    },
-    [haptics, setPetrolspyMode]
-  );
-
-  const handlePetrolspyConfirm = useCallback(() => {
-    haptics.toggleChange(true);
-    setPetrolspyMode(true);
-    setPetrolspyDisclaimerOpen(false);
-  }, [haptics, setPetrolspyMode]);
-
-  const handlePetrolspyCancel = useCallback(() => {
-    setPetrolspyDisclaimerOpen(false);
-  }, []);
 
   const handleThemeToggle = () => {
     haptics.toggleChange(!isDark);
@@ -149,55 +126,23 @@ export const SettingsSheet = ({ open, onOpenChange }: SettingsSheetProps) => {
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Zap className="h-5 w-5 text-green-500" />
+              <Zap className="h-5 w-5 text-blue-500" />
               <div>
-                <Label className="text-sm font-medium">Aggregate Data (Beta)</Label>
+                <Label className="text-sm font-medium">ServoSight Countrywide</Label>
                 <p className="text-xs text-muted-foreground">
-                  Show live state data (NSW & WA)
+                  Aggregates all live data sources nationally
                 </p>
               </div>
             </div>
             <Switch
-              checked={aggregateMode}
+              checked={countrywideMode}
               onCheckedChange={(c) => {
                 haptics.toggleChange(c);
-                setAggregateMode(c);
+                setCountrywideMode(c);
               }}
-              aria-label="Toggle Aggregate data overlay"
+              aria-label="Toggle Countrywide Data"
             />
           </div>
-
-          <Separator />
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Fuel className="h-5 w-5 text-amber-500" />
-              <div>
-                <Label className="text-sm font-medium">PetrolSpy Prices</Label>
-                <p className="text-xs text-muted-foreground">
-                  Show crowdsourced prices from PetrolSpy
-                </p>
-              </div>
-            </div>
-            <Switch
-              checked={petrolspyMode}
-              onCheckedChange={handlePetrolspyToggle}
-              aria-label="Toggle PetrolSpy price overlay"
-            />
-          </div>
-
-          <AlertDialog open={petrolspyDisclaimerOpen} onOpenChange={setPetrolspyDisclaimerOpen}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Enable PetrolSpy prices?</AlertDialogTitle>
-                <AlertDialogDescription>{PETROLSPY_DISCLAIMER}</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel onClick={handlePetrolspyCancel}>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handlePetrolspyConfirm}>Enable</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
 
           <Separator />
 

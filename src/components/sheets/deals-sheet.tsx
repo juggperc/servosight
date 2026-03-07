@@ -38,12 +38,11 @@ export const DealsSheet = ({ open, onOpenChange }: DealsSheetProps) => {
   const [searching, setSearching] = useState(false);
   const [averagePrice, setAveragePrice] = useState(0);
 
-  const [aggregateMode] = useLocalStorage<boolean>("servo-aggregate-mode", true);
-  const [petrolspyMode] = useLocalStorage<boolean>("servo-petrolspy-mode", false);
+  const [countrywideMode] = useLocalStorage<boolean>("servo-countrywide-mode", true);
 
   const fetchDeals = useCallback(async () => {
     if (!lat || !lng) return;
-    if (!aggregateMode && !petrolspyMode) {
+    if (!countrywideMode) {
       setDeals([]);
       setAveragePrice(0);
       return;
@@ -58,20 +57,14 @@ export const DealsSheet = ({ open, onOpenChange }: DealsSheetProps) => {
         radius: radius.toString(),
       });
 
-      const promises = [];
-
-      if (aggregateMode) {
-        promises.push(fetch(`/api/stations?${params}`).then((r) => r.ok ? r.json() : []));
-      }
-
-      if (petrolspyMode) {
-        promises.push(fetch(`/api/petrolspy?lat=${lat}&lng=${lng}`).then(async (r) => {
+      const promises = [
+        fetch(`/api/stations?${params}`).then((r) => r.ok ? r.json() : []),
+        fetch(`/api/petrolspy?lat=${lat}&lng=${lng}`).then(async (r) => {
           if (!r.ok) return [];
           const data = await r.json();
-          const list = Array.isArray(data) ? data : data?.stations ?? [];
-          return list;
-        }));
-      }
+          return Array.isArray(data) ? data : data?.stations ?? [];
+        })
+      ];
 
       const results = await Promise.allSettled(promises);
       let combinedStations: StationWithPrices[] = [];
@@ -100,7 +93,7 @@ export const DealsSheet = ({ open, onOpenChange }: DealsSheetProps) => {
     } finally {
       setSearching(false);
     }
-  }, [freshness, fuelType, lat, lng, radius, aggregateMode, petrolspyMode]);
+  }, [freshness, fuelType, lat, lng, radius, countrywideMode]);
 
   useEffect(() => {
     if (open && !lat && !lng) {

@@ -28,7 +28,7 @@ export const BottomNav = ({ activeTab, onTabChange, compact = false }: BottomNav
       animate={{ opacity: 1, y: 0 }}
       transition={softSpring}
       className={cn(
-        "fixed inset-x-3 bottom-3 z-[2000] pb-safe md:inset-x-auto md:left-4 md:top-1/2 md:bottom-auto md:w-[88px] md:-translate-y-1/2",
+        "fixed inset-x-3 bottom-3 z-[2000] pb-safe transform-gpu will-change-transform md:inset-x-auto md:left-4 md:top-1/2 md:bottom-auto md:w-[88px] md:-translate-y-1/2",
         compact && "max-md:bottom-2"
       )}
       role="tablist"
@@ -56,7 +56,7 @@ export const BottomNav = ({ activeTab, onTabChange, compact = false }: BottomNav
               whileTap={{ scale: 0.97 }}
               transition={appleSpring}
               className={cn(
-                "group relative flex min-w-0 flex-1 flex-col items-center gap-1 rounded-[1.35rem] px-4 py-2.5 md:w-full md:flex-none md:px-2.5 md:py-3",
+                "group relative flex min-w-0 flex-1 flex-col items-center gap-1 rounded-[1.35rem] px-4 py-2.5 transform-gpu will-change-transform md:w-full md:flex-none md:px-2.5 md:py-3",
                 compact && "max-md:gap-0 max-md:px-3 max-md:py-2",
                 isActive
                   ? "text-foreground"
