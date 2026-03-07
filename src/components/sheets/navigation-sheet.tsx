@@ -1,24 +1,19 @@
 "use client";
 
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import type { RouteData, StationWithPrices } from "@/lib/types";
-import { cn } from "@/lib/utils";
 import {
-  ArrowRight,
   Clock3,
   Loader2,
-  MapPinned,
   Navigation,
-  Route,
-  Sparkles,
+  Route as RouteIcon,
+  ArrowUp,
+  CornerUpLeft,
+  CornerUpRight,
+  Flag,
   X,
 } from "lucide-react";
+import { Drawer as DrawerPrimitive } from "vaul";
 
 type NavigationSheetProps = {
   open: boolean;
@@ -60,184 +55,142 @@ export const NavigationSheet = ({
   onStartRoute,
   onClearRoute,
 }: NavigationSheetProps) => {
+  const upcomingStep = route?.steps[currentStepIndex] ?? null;
+  const nextStep = route?.steps[currentStepIndex + 1] ?? null;
+
+  const getStepIcon = (maneuverType?: string) => {
+    if (maneuverType === "arrive") return Flag;
+    if (maneuverType === "turn") return CornerUpRight;
+    if (maneuverType === "depart") return ArrowUp;
+    return CornerUpLeft;
+  };
+
+  const UpcomingIcon = getStepIcon(upcomingStep?.maneuverType);
+
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="max-h-[88vh] md:mx-auto md:max-w-xl md:rounded-t-2xl">
-        <DrawerHeader className="text-left">
-          <div className="flex items-center justify-between gap-3">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <DrawerTitle className="flex items-center gap-2">
-                  <Navigation className="h-4 w-4 text-blue-500" />
-                  Satnav
-                </DrawerTitle>
-                <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-400">
-                  Experimental
-                </span>
+    <DrawerPrimitive.Root
+      open={open}
+      onOpenChange={onOpenChange}
+      dismissible
+      modal={false}
+      direction="bottom"
+    >
+      <DrawerPrimitive.Portal>
+        <DrawerPrimitive.Content className="fixed inset-x-3 bottom-24 z-[1650] mx-auto flex w-auto max-w-md flex-col rounded-[28px] border border-border/60 bg-background/90 shadow-2xl backdrop-blur-xl outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-bottom-4 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-bottom-4 md:bottom-6 md:left-24 md:right-auto md:w-full">
+          <DrawerPrimitive.Title className="sr-only">Satnav</DrawerPrimitive.Title>
+          <DrawerPrimitive.Description className="sr-only">
+            Compact live navigation widget with the next two turns.
+          </DrawerPrimitive.Description>
+
+          <div className="mx-auto mt-3 h-1.5 w-12 rounded-full bg-foreground/12" />
+
+          <div className="space-y-3 p-4 pb-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                    <Navigation className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-foreground">
+                      {station?.name ?? "Satnav"}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {station?.suburb || station?.address || "Preparing route"}
+                    </p>
+                  </div>
+                </div>
               </div>
-              {station ? (
-                <p className="text-xs text-muted-foreground">
-                  Smooth turn-by-turn route to `{station.name}`
-                </p>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  Choose a fuel station on the map to start navigation
-                </p>
-              )}
-            </div>
-            {(route || routeError) && (
+
               <button
                 onClick={onClearRoute}
-                aria-label="Clear current route"
+                aria-label="Dismiss satnav widget"
                 tabIndex={0}
                 className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
                 <X className="h-4 w-4" />
               </button>
-            )}
-          </div>
-        </DrawerHeader>
+            </div>
 
-        <div className="space-y-4 overflow-y-auto px-4 pb-8">
-          {station && (
-            <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-card-foreground">{station.name}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {station.address}
-                  </p>
-                </div>
-                <div className="rounded-2xl bg-blue-500/10 p-2 text-blue-600 dark:text-blue-400">
-                  <MapPinned className="h-4 w-4" />
-                </div>
+            {routeError ? (
+              <div className="rounded-3xl border border-destructive/20 bg-destructive/5 p-4">
+                <p className="text-sm font-semibold text-foreground">Could not start navigation</p>
+                <p className="mt-1 text-xs text-muted-foreground">{routeError}</p>
+                <Button size="sm" className="mt-3 rounded-2xl" onClick={onStartRoute}>
+                  Retry route
+                </Button>
               </div>
+            ) : null}
 
-              {!route && (
-                <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-muted/40 p-3">
-                  <div className="flex items-start gap-2">
-                    <Sparkles className="mt-0.5 h-4 w-4 text-blue-500" />
+            {!route && routing ? (
+              <div className="rounded-3xl border border-border/60 bg-card/75 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-card-foreground">Routing now</p>
                     <p className="text-xs text-muted-foreground">
-                      Experimental satnav computes a lightweight route locally in your browser for a
-                      smooth, simple preview that behaves consistently in production.
+                      Locking onto your location and drawing the first turn.
                     </p>
                   </div>
-                  <Button
-                    size="sm"
-                    onClick={onStartRoute}
-                    disabled={routing}
-                    className="shrink-0 rounded-xl"
-                  >
-                    {routing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    Route
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {routeError && (
-            <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-4">
-              <p className="text-sm font-medium text-foreground">Satnav unavailable</p>
-              <p className="mt-1 text-xs text-muted-foreground">{routeError}</p>
-              <Button size="sm" variant="outline" className="mt-3 rounded-xl" onClick={onStartRoute}>
-                Retry route
-              </Button>
-            </div>
-          )}
-
-          {routing && (
-            <div className="rounded-2xl border border-border/60 bg-card p-5">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-500/10">
-                  <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-card-foreground">Building route</p>
-                  <p className="text-xs text-muted-foreground">
-                    Sketching a lightweight driving path to your selected station
-                  </p>
                 </div>
               </div>
-            </div>
-          )}
+            ) : null}
 
-          {route && (
-            <>
-              <div className="rounded-2xl border border-blue-500/15 bg-blue-500/6 p-4 shadow-sm">
-                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-400">
-                  <Navigation className="h-4 w-4" />
-                  Next move
-                </div>
-                <p className="mt-2 text-base font-semibold tracking-tight text-card-foreground">
-                  {route.steps[currentStepIndex]?.instruction}
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Stay on route and the next turn will update automatically.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Route className="h-4 w-4" />
-                    <span className="text-[11px] font-medium uppercase tracking-wide">Distance</span>
-                  </div>
-                  <p className="mt-2 text-2xl font-extrabold tracking-tighter text-card-foreground">
+            {route && upcomingStep ? (
+              <>
+                <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground">
+                  <span className="rounded-full bg-blue-500/10 px-2.5 py-1 text-blue-600 dark:text-blue-400">
+                    Step {Math.min(currentStepIndex + 1, route.steps.length)}/{route.steps.length}
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <RouteIcon className="h-3.5 w-3.5" />
                     {formatDistance(route.distance)}
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Clock3 className="h-4 w-4" />
-                    <span className="text-[11px] font-medium uppercase tracking-wide">ETA</span>
-                  </div>
-                  <p className="mt-2 text-2xl font-extrabold tracking-tighter text-card-foreground">
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <Clock3 className="h-3.5 w-3.5" />
                     {formatDuration(route.duration)}
-                  </p>
+                  </span>
                 </div>
-              </div>
 
-              <div className="rounded-2xl border border-border/60 bg-card shadow-sm">
-                <div className="border-b border-border/50 px-4 py-3">
-                  <p className="text-sm font-semibold text-card-foreground">Turn-by-turn</p>
+                <div className="rounded-[24px] bg-gradient-to-br from-blue-500/14 via-blue-500/8 to-background p-4 ring-1 ring-blue-500/12">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-500 text-white shadow-lg shadow-blue-500/20">
+                      <UpcomingIcon className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400">
+                        Upcoming
+                      </p>
+                      <p className="mt-1 text-lg font-semibold tracking-tight text-foreground">
+                        {upcomingStep.instruction}
+                      </p>
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        In {formatDistance(upcomingStep.distance)} · {formatDuration(upcomingStep.duration)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-[22px] border border-border/60 bg-card/75 px-4 py-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    Then
+                  </p>
+                  <p className="mt-1 truncate text-sm font-medium text-card-foreground">
+                    {nextStep?.instruction ?? "Arrive at your selected station"}
+                  </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Real browser-side route guidance with live step progress
+                    {nextStep
+                      ? `${formatDistance(nextStep.distance)} · ${formatDuration(nextStep.duration)}`
+                      : "Live guidance will keep updating as you move."}
                   </p>
                 </div>
-                <div className="max-h-[46vh] space-y-1 overflow-y-auto p-3">
-                  {route.steps.map((step, index) => (
-                    <div
-                      key={`${step.instruction}-${index}`}
-                      className={cn(
-                        "animate-fade-in-up flex items-start gap-3 rounded-2xl px-3 py-3 transition-colors",
-                        index === currentStepIndex
-                          ? "bg-blue-500/8 ring-1 ring-blue-500/20"
-                          : index < currentStepIndex
-                            ? "opacity-55"
-                            : "hover:bg-muted/40"
-                      )}
-                      style={{ animationDelay: `${index * 30}ms`, animationFillMode: "backwards" }}
-                    >
-                      <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-foreground/6 text-[11px] font-semibold text-foreground">
-                        {index < currentStepIndex ? "✓" : index + 1}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-card-foreground">{step.instruction}</p>
-                        <div className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                          <span>{formatDistance(step.distance)}</span>
-                          <ArrowRight className="h-3 w-3" />
-                          <span>{formatDuration(step.duration)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-      </DrawerContent>
-    </Drawer>
+              </>
+            ) : null}
+          </div>
+        </DrawerPrimitive.Content>
+      </DrawerPrimitive.Portal>
+    </DrawerPrimitive.Root>
   );
 };

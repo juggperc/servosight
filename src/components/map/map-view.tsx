@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { CircleMarker, MapContainer, Polyline, TileLayer, useMap } from "react-leaflet";
+import {
+  CircleMarker,
+  MapContainer,
+  Marker,
+  Polyline,
+  TileLayer,
+  useMap,
+  useMapEvents,
+} from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useTheme } from "next-themes";
@@ -9,6 +17,7 @@ import type { RouteData, StationWithPrices, FuelTypeId } from "@/lib/types";
 import { StationMarker } from "./station-marker";
 import { LocateButton } from "./locate-button";
 import { FuelFilter } from "./fuel-filter";
+import { formatPriceCents } from "@/lib/utils";
 
 const LIGHT_TILES = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 const DARK_TILES = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
@@ -16,11 +25,33 @@ const ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">Op
 
 const AUSTRALIA_CENTER: L.LatLngExpression = [-28.0, 134.0];
 const DEFAULT_ZOOM = 5;
+const CLUSTER_BREAKPOINT_ZOOM = 10;
 
 type MapViewProps = {
   onStationSelect?: (station: StationWithPrices) => void;
   activeRoute?: RouteData | null;
   navLocation?: { lat: number; lng: number } | null;
+};
+
+type FlyToState = {
+  lat: number;
+  lng: number;
+  zoom?: number;
+};
+
+type ViewportState = {
+  zoom: number;
+  bounds: L.LatLngBounds | null;
+};
+
+type StationCluster = {
+  id: string;
+  lat: number;
+  lng: number;
+  count: number;
+  minPrice?: number;
+  maxPrice?: number;
+  stations: StationWithPrices[];
 };
 
 const ThemeTileLayer = () => {
@@ -30,11 +61,49 @@ const ThemeTileLayer = () => {
   return <TileLayer attribution={ATTRIBUTION} url={tileUrl} />;
 };
 
-const FlyToLocation = ({ lat, lng }: { lat: number; lng: number }) => {
+const FlyToLocation = ({ lat, lng, zoom }: FlyToState) => {
   const map = useMap();
+
   useEffect(() => {
-    map.flyTo([lat, lng], 13, { duration: 1.5 });
-  }, [map, lat, lng]);
+    map.flyTo([lat, lng], zoom ?? 13, { duration: 1.3 });
+  }, [map, lat, lng, zoom]);
+
+  return null;
+};
+
+const MapViewportListener = ({
+  onChange,
+}: {
+  onChange: (nextViewport: ViewportState) => void;
+}) => {
+  const map = useMapEvents({
+    moveend: () => {
+      onChange({
+        zoom: map.getZoom(),
+        bounds: map.getBounds(),
+      });
+    },
+    zoomend: () => {
+      onChange({
+        zoom: map.getZoom(),
+        bounds: map.getBounds(),
+      });
+    },
+    resize: () => {
+      onChange({
+        zoom: map.getZoom(),
+        bounds: map.getBounds(),
+      });
+    },
+  });
+
+  useEffect(() => {
+    onChange({
+      zoom: map.getZoom(),
+      bounds: map.getBounds(),
+    });
+  }, [map, onChange]);
+
   return null;
 };
 
@@ -89,13 +158,69 @@ const RouteOverlay = ({ route }: { route: RouteData }) => {
   );
 };
 
+const getClusterColumns = (zoom: number): number => {
+  if (zoom <= 5) return 6;
+  if (zoom <= 6) return 8;
+  if (zoom <= 7) return 10;
+  if (zoom <= 8) return 12;
+  if (zoom <= 9) return 15;
+  return 18;
+};
+
+const ClusterMarker = ({
+  cluster,
+  onSelect,
+}: {
+  cluster: StationCluster;
+  onSelect: (cluster: StationCluster) => void;
+}) => {
+  const size = cluster.count > 80 ? 82 : cluster.count > 24 ? 72 : 62;
+  const priceLabel =
+    cluster.minPrice !== undefined
+      ? `<span class="cluster-marker__price">from ${formatPriceCents(cluster.minPrice)}</span>`
+      : `<span class="cluster-marker__price">tap to zoom</span>`;
+
+  const icon = useMemo(
+    () =>
+      L.divIcon({
+        className: "cluster-marker-root",
+        html: `
+          <div class="cluster-marker" style="width:${size}px;height:${size}px;">
+            <span class="cluster-marker__pulse"></span>
+            <span class="cluster-marker__core">
+              <span class="cluster-marker__count">${cluster.count > 99 ? "99+" : cluster.count}</span>
+              ${priceLabel}
+            </span>
+          </div>
+        `,
+        iconSize: [size, size],
+        iconAnchor: [size / 2, size / 2],
+      }),
+    [cluster.count, priceLabel, size]
+  );
+
+  return (
+    <Marker
+      position={[cluster.lat, cluster.lng]}
+      icon={icon}
+      eventHandlers={{
+        click: () => onSelect(cluster),
+      }}
+    />
+  );
+};
+
 export const MapView = ({ onStationSelect, activeRoute, navLocation }: MapViewProps) => {
   const [stations, setStations] = useState<StationWithPrices[]>([]);
   const [selectedFuel, setSelectedFuel] = useState<FuelTypeId>("u91");
   const [showHydrogen, setShowHydrogen] = useState(false);
   const [showEv, setShowEv] = useState(false);
-  const [flyTo, setFlyTo] = useState<{ lat: number; lng: number } | null>(null);
+  const [flyTo, setFlyTo] = useState<FlyToState | null>(null);
   const [dataSource, setDataSource] = useState<"loading" | "live" | "unavailable">("loading");
+  const [viewport, setViewport] = useState<ViewportState>({
+    zoom: DEFAULT_ZOOM,
+    bounds: null,
+  });
 
   const fetchStations = useCallback(
     async (signal?: AbortSignal) => {
@@ -141,6 +266,118 @@ export const MapView = ({ onStationSelect, activeRoute, navLocation }: MapViewPr
     };
   }, [stations]);
 
+  const visibleStations = useMemo(() => {
+    if (!viewport.bounds) {
+      return stations;
+    }
+
+    const paddedBounds = viewport.bounds.pad(0.35);
+    return stations.filter((station) => paddedBounds.contains(L.latLng(station.lat, station.lng)));
+  }, [stations, viewport.bounds]);
+
+  const { individualStations, stationClusters } = useMemo(() => {
+    if (!visibleStations.length || !viewport.bounds || viewport.zoom >= CLUSTER_BREAKPOINT_ZOOM) {
+      return {
+        individualStations: visibleStations,
+        stationClusters: [] as StationCluster[],
+      };
+    }
+
+    const paddedBounds = viewport.bounds.pad(0.1);
+    const west = paddedBounds.getWest();
+    const east = paddedBounds.getEast();
+    const north = paddedBounds.getNorth();
+    const south = paddedBounds.getSouth();
+    const lngSpan = Math.max(east - west, 0.01);
+    const latSpan = Math.max(north - south, 0.01);
+    const columns = getClusterColumns(viewport.zoom);
+    const rows = Math.max(4, Math.round(columns * (latSpan / lngSpan)));
+    const clusterMap = new Map<
+      string,
+      {
+        latSum: number;
+        lngSum: number;
+        minPrice?: number;
+        maxPrice?: number;
+        stations: StationWithPrices[];
+      }
+    >();
+
+    for (const station of visibleStations) {
+      const columnIndex = Math.max(
+        0,
+        Math.min(columns - 1, Math.floor(((station.lng - west) / lngSpan) * columns))
+      );
+      const rowIndex = Math.max(
+        0,
+        Math.min(rows - 1, Math.floor(((north - station.lat) / latSpan) * rows))
+      );
+      const clusterKey = `${columnIndex}:${rowIndex}`;
+      const existing = clusterMap.get(clusterKey);
+
+      if (!existing) {
+        clusterMap.set(clusterKey, {
+          latSum: station.lat,
+          lngSum: station.lng,
+          minPrice: station.cheapestPrice,
+          maxPrice: station.cheapestPrice,
+          stations: [station],
+        });
+        continue;
+      }
+
+      existing.latSum += station.lat;
+      existing.lngSum += station.lng;
+      existing.stations.push(station);
+      if (station.cheapestPrice !== undefined) {
+        existing.minPrice =
+          existing.minPrice === undefined
+            ? station.cheapestPrice
+            : Math.min(existing.minPrice, station.cheapestPrice);
+        existing.maxPrice =
+          existing.maxPrice === undefined
+            ? station.cheapestPrice
+            : Math.max(existing.maxPrice, station.cheapestPrice);
+      }
+    }
+
+    const clusteredStations: StationCluster[] = [];
+    const singleStations: StationWithPrices[] = [];
+
+    for (const [clusterKey, clusterValue] of clusterMap.entries()) {
+      if (clusterValue.stations.length === 1) {
+        singleStations.push(clusterValue.stations[0]);
+        continue;
+      }
+
+      clusteredStations.push({
+        id: clusterKey,
+        lat: clusterValue.latSum / clusterValue.stations.length,
+        lng: clusterValue.lngSum / clusterValue.stations.length,
+        count: clusterValue.stations.length,
+        minPrice: clusterValue.minPrice,
+        maxPrice: clusterValue.maxPrice,
+        stations: clusterValue.stations,
+      });
+    }
+
+    return {
+      individualStations: singleStations,
+      stationClusters: clusteredStations,
+    };
+  }, [visibleStations, viewport.bounds, viewport.zoom]);
+
+  const handleClusterSelect = useCallback(
+    (cluster: StationCluster) => {
+      setFlyTo({
+        lat: cluster.lat,
+        lng: cluster.lng,
+        zoom: Math.min(viewport.zoom + 2, 13),
+      });
+    },
+    [viewport.zoom]
+  );
+
   return (
     <div className="relative h-full w-full">
       <MapContainer
@@ -151,8 +388,9 @@ export const MapView = ({ onStationSelect, activeRoute, navLocation }: MapViewPr
         attributionControl={false}
       >
         <ThemeTileLayer />
+        <MapViewportListener onChange={setViewport} />
 
-        {stations.map((station) => (
+        {individualStations.map((station) => (
           <StationMarker
             key={station.id}
             station={station}
@@ -162,8 +400,11 @@ export const MapView = ({ onStationSelect, activeRoute, navLocation }: MapViewPr
             onSelect={onStationSelect}
           />
         ))}
+        {stationClusters.map((cluster) => (
+          <ClusterMarker key={cluster.id} cluster={cluster} onSelect={handleClusterSelect} />
+        ))}
 
-        {flyTo && <FlyToLocation lat={flyTo.lat} lng={flyTo.lng} />}
+        {flyTo && <FlyToLocation lat={flyTo.lat} lng={flyTo.lng} zoom={flyTo.zoom} />}
         {activeRoute && <RouteOverlay route={activeRoute} />}
         {navLocation && (
           <CircleMarker
@@ -199,7 +440,9 @@ export const MapView = ({ onStationSelect, activeRoute, navLocation }: MapViewPr
           />
           <span className="text-muted-foreground">
             {dataSource === "live"
-              ? `${stations.length.toLocaleString()} live NSW/TAS stations`
+              ? viewport.zoom < CLUSTER_BREAKPOINT_ZOOM && stationClusters.length > 0
+                ? `${visibleStations.length.toLocaleString()} stations · ${stationClusters.length} smart groups`
+                : `${stations.length.toLocaleString()} live NSW/TAS stations`
               : "Live NSW data unavailable"}
           </span>
         </div>

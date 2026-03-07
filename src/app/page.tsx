@@ -11,9 +11,8 @@ import { NavigationSheet } from "@/components/sheets/navigation-sheet";
 import { IOSPrompt } from "@/components/onboarding/ios-prompt";
 import { DonatePopup } from "@/components/donate-popup";
 import type { RouteData, StationWithPrices } from "@/lib/types";
-import { Button } from "@/components/ui/button";
-import { ArrowRight, Navigation, Sparkles, X } from "lucide-react";
 import { fetchBrowserRoute, getActiveStepIndex } from "@/lib/browser-route";
+import { buildLocalRoute } from "@/lib/local-satnav";
 
 const HomePage = () => {
   const [activeTab, setActiveTab] = useState<TabId>("map");
@@ -92,6 +91,9 @@ const HomePage = () => {
 
   const handleClearRoute = useCallback(() => {
     routeAbortRef.current?.abort();
+    routeAbortRef.current = null;
+    setRouting(false);
+    setSelectedStation(null);
     setActiveRoute(null);
     setRouteError(null);
     setNavigationOpen(false);
@@ -99,32 +101,53 @@ const HomePage = () => {
     setNavLocation(null);
   }, []);
 
-  const handleStartRoute = useCallback(async () => {
-    if (!selectedStation) return;
+  const handleStartRoute = useCallback(
+    async (stationOverride?: StationWithPrices) => {
+      const station = stationOverride ?? selectedStation;
+      if (!station) return;
 
-    setRouting(true);
-    setRouteError(null);
-    setNavigationOpen(true);
-    routeAbortRef.current?.abort();
-    routeAbortRef.current = new AbortController();
+      setSelectedStation(station);
+      setRouting(true);
+      setRouteError(null);
+      setNavigationOpen(true);
+      routeAbortRef.current?.abort();
+      const controller = new AbortController();
+      routeAbortRef.current = controller;
 
-    try {
-      const currentLocation = await getCurrentLocation();
-      setNavLocation(currentLocation);
-      const route = await fetchBrowserRoute(
-        currentLocation,
-        selectedStation,
-        routeAbortRef.current.signal
-      );
-      setCurrentStepIndex(0);
-      setActiveRoute(route satisfies RouteData);
-    } catch (error) {
-      setRouteError(error instanceof Error ? error.message : "Failed to build route");
-      setActiveRoute(null);
-    } finally {
-      setRouting(false);
-    }
-  }, [getCurrentLocation, selectedStation]);
+      try {
+        const currentLocation = navLocation ?? (await getCurrentLocation());
+        setNavLocation(currentLocation);
+
+        // Show an immediate first instruction, then upgrade to the richer route when available.
+        setActiveRoute(buildLocalRoute(currentLocation, station));
+        setCurrentStepIndex(0);
+
+        const route = await fetchBrowserRoute(currentLocation, station, controller.signal);
+        if (controller.signal.aborted) return;
+
+        setCurrentStepIndex(0);
+        setActiveRoute(route satisfies RouteData);
+      } catch (error) {
+        if (controller.signal.aborted) return;
+
+        setRouteError(error instanceof Error ? error.message : "Failed to build route");
+        setActiveRoute(null);
+      } finally {
+        if (routeAbortRef.current === controller) {
+          routeAbortRef.current = null;
+        }
+        setRouting(false);
+      }
+    },
+    [getCurrentLocation, navLocation, selectedStation]
+  );
+
+  const handleStationSelect = useCallback(
+    (station: StationWithPrices) => {
+      void handleStartRoute(station);
+    },
+    [handleStartRoute]
+  );
 
   useEffect(() => {
     if (!navigationOpen || !activeRoute) return undefined;
@@ -148,76 +171,15 @@ const HomePage = () => {
     return () => navigator.geolocation.clearWatch(watchId);
   }, [navigationOpen, activeRoute]);
 
-  const currentStep = activeRoute?.steps[currentStepIndex] ?? null;
-
   return (
     <main className="fixed inset-0 overflow-hidden">
       <div className="h-full w-full md:pl-20">
         <DynamicMap
-          onStationSelect={setSelectedStation}
+          onStationSelect={handleStationSelect}
           activeRoute={activeRoute}
           navLocation={navLocation}
         />
       </div>
-
-      {activeRoute && currentStep && (
-        <div className="pointer-events-none absolute inset-x-4 top-4 z-[1700] mx-auto max-w-md animate-fade-in-up md:left-24 md:right-auto md:top-6">
-          <div className="rounded-3xl border border-border/60 bg-background/92 px-4 py-3 shadow-xl backdrop-blur-xl">
-            <div className="flex items-center gap-2">
-              <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-400">
-                Turn by turn
-              </span>
-              <span className="text-[10px] font-medium text-muted-foreground">
-                Step {Math.min(currentStepIndex + 1, activeRoute.steps.length)}/{activeRoute.steps.length}
-              </span>
-            </div>
-            <p className="mt-2 text-sm font-semibold text-foreground">{currentStep.instruction}</p>
-            <div className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-              <span>{Math.max(10, Math.round(currentStep.distance))} m</span>
-              <ArrowRight className="h-3 w-3" />
-              <span>{Math.max(1, Math.round(currentStep.duration / 60))} min</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {selectedStation && !navigationOpen && (
-        <div className="absolute inset-x-3 bottom-24 z-[1600] mx-auto max-w-md animate-fade-in-up md:bottom-6 md:left-24 md:right-auto">
-          <div className="rounded-3xl border border-border/60 bg-background/92 p-4 shadow-xl backdrop-blur-xl">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="truncate text-sm font-semibold text-foreground">{selectedStation.name}</p>
-                  <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-400">
-                    Experimental
-                  </span>
-                </div>
-                <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                  Experimental browser-side satnav with real turn-by-turn routing and a smooth route preview
-                </p>
-              </div>
-              <button
-                onClick={() => setSelectedStation(null)}
-                aria-label="Dismiss station satnav card"
-                tabIndex={0}
-                className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="mt-4 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Sparkles className="h-3.5 w-3.5 text-blue-500" />
-                <span>Browser-routed, Vercel-safe</span>
-              </div>
-              <Button onClick={handleStartRoute} size="sm" className="rounded-xl">
-                <Navigation className="mr-2 h-4 w-4" />
-                Start satnav
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
 
@@ -228,20 +190,19 @@ const HomePage = () => {
       <NavigationSheet
         open={navigationOpen}
         onOpenChange={(open) => {
-          setNavigationOpen(open);
           if (!open) {
-            setActiveRoute(null);
-            setRouteError(null);
-            setCurrentStepIndex(0);
-            setNavLocation(null);
+            handleClearRoute();
+            return;
           }
+
+          setNavigationOpen(true);
         }}
         station={selectedStation}
         route={activeRoute}
         currentStepIndex={currentStepIndex}
         routing={routing}
         routeError={routeError}
-        onStartRoute={handleStartRoute}
+        onStartRoute={() => void handleStartRoute()}
         onClearRoute={handleClearRoute}
       />
 
