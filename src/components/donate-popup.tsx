@@ -5,7 +5,6 @@ import { QRCodeSVG } from "qrcode.react";
 import { useTheme } from "next-themes";
 import { X, Heart, Copy, Check, Coins, Sparkles } from "lucide-react";
 import { useAppHaptics } from "@/components/haptics-provider";
-import { useLocalStorage } from "@/lib/hooks/use-local-storage";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "motion/react";
 import { appleSpring, fadeUp, quickFade, softSpring } from "@/lib/motion";
@@ -16,7 +15,7 @@ const BTC_URI = `bitcoin:${BTC_ADDRESS}`;
 export const DonatePopup = ({ compact = false }: { compact?: boolean }) => {
   const haptics = useAppHaptics();
   const { resolvedTheme } = useTheme();
-  const [dismissed, setDismissed] = useLocalStorage("servo-donate-dismissed", false);
+  const [dismissed, setDismissed] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [toastExpanded, setToastExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -24,15 +23,25 @@ export const DonatePopup = ({ compact = false }: { compact?: boolean }) => {
 
   useEffect(() => {
     if (dismissed) return;
-    const timer = setTimeout(() => setVisible(true), 8000);
+    const timer = setTimeout(() => setVisible(true), 2000);
     return () => clearTimeout(timer);
   }, [dismissed]);
+
+  useEffect(() => {
+    if (visible && !toastExpanded && !expanded) {
+      const autoDismiss = setTimeout(() => {
+        setVisible(false);
+        setDismissed(true);
+      }, 6000);
+      return () => clearTimeout(autoDismiss);
+    }
+  }, [visible, toastExpanded, expanded]);
 
   const handleDismiss = useCallback(() => {
     haptics.dismiss();
     setVisible(false);
     setDismissed(true);
-  }, [haptics, setDismissed]);
+  }, [haptics]);
 
   const handleCopy = useCallback(async () => {
     try {
