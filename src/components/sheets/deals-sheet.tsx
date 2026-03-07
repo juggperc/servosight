@@ -109,7 +109,7 @@ export const DealsSheet = ({ open, onOpenChange }: DealsSheetProps) => {
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="max-h-[90vh] md:mx-auto md:max-w-lg md:rounded-t-2xl">
+      <DrawerContent className="max-h-[90vh] md:mx-auto md:max-w-lg md:rounded-t-[2rem]">
         <DrawerHeader className="text-left">
           <DrawerTitle className="flex items-center gap-2">
             <Flame className="h-5 w-5 text-orange-500" />

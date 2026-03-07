@@ -635,9 +635,9 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
       </div>
 
       {dataSource === "unavailable" && countrywideMode && (
-        <div className="glass-panel-strong pointer-events-none absolute inset-x-4 top-24 z-[1000] mx-auto max-w-sm rounded-[1.6rem] p-4 text-center">
-          <p className="text-sm font-semibold text-foreground">Waiting for live data</p>
-          <p className="mt-1 text-xs text-muted-foreground">
+        <div className="glass-panel-strong pointer-events-none absolute inset-x-4 top-24 z-[1000] mx-auto max-w-sm rounded-[2rem] p-4 text-center">
+          <p className="text-sm font-semibold tracking-tight text-foreground">Waiting for live data</p>
+          <p className="mt-1 text-xs leading-relaxed tracking-tight text-muted-foreground">
             Fuel data is loaded from State APIs. Once it responds, stations will
             appear here and users can keep prices fresh by reporting updates.
           </p>

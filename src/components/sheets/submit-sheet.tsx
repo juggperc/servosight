@@ -121,7 +121,7 @@ export const SubmitSheet = ({ open, onOpenChange, onSuccess }: SubmitSheetProps)
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="max-h-[85vh] md:mx-auto md:max-w-lg md:rounded-t-2xl">
+      <DrawerContent className="max-h-[85vh] md:mx-auto md:max-w-lg md:rounded-t-[2rem]">
         <DrawerHeader className="text-left">
           <DrawerTitle>Report a Price</DrawerTitle>
         </DrawerHeader>

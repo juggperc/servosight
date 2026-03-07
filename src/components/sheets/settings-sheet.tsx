@@ -77,7 +77,7 @@ export const SettingsSheet = ({ open, onOpenChange }: SettingsSheetProps) => {
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="max-h-[85vh] md:mx-auto md:max-w-md md:rounded-t-2xl">
+      <DrawerContent className="max-h-[85vh] md:mx-auto md:max-w-md md:rounded-t-[2rem]">
         <DrawerHeader className="text-left">
           <DrawerTitle>Settings</DrawerTitle>
         </DrawerHeader>

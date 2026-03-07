@@ -36,8 +36,8 @@ export const BottomNav = ({ activeTab, onTabChange, compact = false }: BottomNav
     >
       <div
         className={cn(
-          "glass-panel-strong flex items-center justify-around rounded-[1.9rem] px-2 py-2 shadow-[0_24px_58px_rgba(15,23,42,0.18)] md:h-full md:flex-col md:justify-start md:gap-1 md:rounded-[2rem] md:px-2 md:py-3",
-          compact && "max-md:rounded-[1.6rem] max-md:px-1.5 max-md:py-1.5"
+          "glass-panel-strong flex items-center justify-around rounded-[2rem] px-2 py-2 shadow-[0_24px_58px_rgba(15,23,42,0.18)] md:h-full md:flex-col md:justify-start md:gap-1 md:rounded-[2rem] md:px-2 md:py-3",
+          compact && "max-md:rounded-[2rem] max-md:px-1.5 max-md:py-1.5"
         )}
       >
         {tabs.map((tab) => {
@@ -56,7 +56,7 @@ export const BottomNav = ({ activeTab, onTabChange, compact = false }: BottomNav
               whileTap={{ scale: 0.97 }}
               transition={appleSpring}
               className={cn(
-                "group relative flex min-w-0 flex-1 flex-col items-center gap-1 rounded-[1.35rem] px-4 py-2.5 transform-gpu will-change-transform md:w-full md:flex-none md:px-2.5 md:py-3",
+                "group relative flex min-w-0 flex-1 flex-col items-center gap-1 rounded-[1.5rem] px-4 py-2.5 transform-gpu will-change-transform md:w-full md:flex-none md:px-2.5 md:py-3",
                 compact && "max-md:gap-0 max-md:px-3 max-md:py-2",
                 isActive
                   ? "text-foreground"
@@ -67,7 +67,7 @@ export const BottomNav = ({ activeTab, onTabChange, compact = false }: BottomNav
                 <motion.div
                   layoutId="bottom-nav-highlight"
                   transition={appleSpring}
-                  className="absolute inset-0 rounded-[1.35rem] bg-white/70 ring-1 ring-white/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.88),0_12px_24px_rgba(15,23,42,0.07)] dark:bg-white/[0.07] dark:ring-white/[0.12] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_14px_26px_rgba(0,0,0,0.18)]"
+                  className="absolute inset-0 rounded-[1.5rem] bg-white/70 ring-1 ring-white/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.88),0_12px_24px_rgba(15,23,42,0.07)] dark:bg-white/[0.07] dark:ring-white/[0.12] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_14px_26px_rgba(0,0,0,0.18)]"
                 />
               )}
               <div className="relative flex h-8 w-8 items-center justify-center">
@@ -90,7 +90,7 @@ export const BottomNav = ({ activeTab, onTabChange, compact = false }: BottomNav
                 animate={{ opacity: isActive ? 1 : 0.82 }}
                 transition={softSpring}
                 className={cn(
-                  "text-[10px] leading-none transition-all duration-200",
+                  "text-[10px] leading-none tracking-tight transition-all duration-200",
                   compact && "max-md:hidden",
                   isActive ? "font-semibold" : "font-medium"
                 )}
@@ -101,6 +101,6 @@ export const BottomNav = ({ activeTab, onTabChange, compact = false }: BottomNav
           );
         })}
       </div>
-    </motion.nav>
+    </motion.nav >
   );
 };
