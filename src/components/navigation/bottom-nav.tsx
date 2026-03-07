@@ -60,65 +60,28 @@ export const BottomNav = ({ activeTab, onTabChange, compact = false }: BottomNav
                 compact && "max-md:gap-0 max-md:px-3 max-md:py-2",
                 isActive
                   ? "text-foreground"
-                  : "text-muted-foreground/70 hover:text-foreground/80"
+                  : "text-muted-foreground hover:text-foreground/85"
               )}
             >
               {isActive && (
                 <motion.div
                   layoutId="bottom-nav-highlight"
                   transition={appleSpring}
-                  className="absolute inset-0 rounded-[1.35rem] bg-white/45 ring-1 ring-white/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_14px_28px_rgba(15,23,42,0.08)] dark:bg-white/6 dark:ring-white/8 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_18px_28px_rgba(0,0,0,0.2)]"
+                  className="absolute inset-0 rounded-[1.35rem] bg-white/70 ring-1 ring-white/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.88),0_12px_24px_rgba(15,23,42,0.07)] dark:bg-white/[0.07] dark:ring-white/[0.12] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_14px_26px_rgba(0,0,0,0.18)]"
                 />
               )}
               <div className="relative flex h-8 w-8 items-center justify-center">
                 {isActive && (
-                  <>
-                    <motion.div
-                      layoutId="bottom-nav-loupe"
-                      animate={{
-                        scale: [1, 1.04, 0.98, 1],
-                        rotate: [0, 3, -2, 0],
-                      }}
-                      transition={{
-                        ...appleSpring,
-                        repeat: Number.POSITIVE_INFINITY,
-                        duration: 5.4,
-                      }}
-                      className="nav-loupe nav-loupe__core"
-                    />
-                    <motion.div
-                      layoutId="bottom-nav-loupe-gloss"
-                      animate={{
-                        opacity: [0.78, 0.96, 0.78],
-                        x: [0, 1.5, 0],
-                        y: [0, -0.5, 0],
-                      }}
-                      transition={{
-                        duration: 3.8,
-                        repeat: Number.POSITIVE_INFINITY,
-                        ease: "easeInOut",
-                      }}
-                      className="nav-loupe nav-loupe__shine"
-                    />
-                    <motion.div
-                      layoutId="bottom-nav-icon-glow"
-                      animate={{
-                        opacity: [0.42, 0.6, 0.42],
-                        scale: [0.96, 1.02, 0.96],
-                      }}
-                      transition={{
-                        duration: 4.2,
-                        repeat: Number.POSITIVE_INFINITY,
-                        ease: "easeInOut",
-                      }}
-                      className="nav-loupe nav-loupe__glow"
-                    />
-                  </>
+                  <motion.div
+                    layoutId="bottom-nav-icon-chip"
+                    transition={appleSpring}
+                    className="absolute inset-0 rounded-full bg-blue-500/12 ring-1 ring-blue-500/12 dark:bg-blue-400/10 dark:ring-blue-300/10"
+                  />
                 )}
                 <Icon
                   className={cn(
                     "relative h-[22px] w-[22px] transition-all duration-300 ease-out",
-                    isActive && "scale-110"
+                    isActive && "scale-105 text-blue-700 dark:text-blue-300"
                   )}
                   strokeWidth={isActive ? 2.5 : 1.5}
                 />

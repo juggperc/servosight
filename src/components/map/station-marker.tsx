@@ -81,16 +81,18 @@ export const StationMarker = ({
       }}
     >
       <Popup>
-        <div className={compactPopup ? "min-w-[210px] p-3" : "min-w-[230px] p-4"}>
+        <div className={compactPopup ? "min-w-[210px] max-w-[260px] p-3" : "min-w-[230px] max-w-[280px] p-4"}>
           <div className="flex items-center gap-2">
             <div
               className="h-2 w-2 rounded-full"
               style={{ backgroundColor: accentColor }}
               aria-hidden="true"
             />
-            <p className="text-sm font-semibold tracking-tight text-foreground">{station.name}</p>
+            <p className="text-sm font-semibold leading-tight tracking-tight text-foreground">
+              {station.name}
+            </p>
           </div>
-          <p className="ml-4 mt-0.5 text-[11px] text-muted-foreground">
+          <p className="ml-4 mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
             {station.address}, {station.suburb}
           </p>
 
@@ -101,10 +103,12 @@ export const StationMarker = ({
             >
               {formatPriceCents(priceData.price)}
             </span>
-            <span className="pb-0.5 text-[11px] text-muted-foreground">{fuelInfo.label}/L</span>
+            <span className="pb-0.5 text-[11px] font-medium text-muted-foreground">
+              {fuelInfo.label}/L
+            </span>
           </div>
 
-          <div className="mt-1 text-[10px] text-muted-foreground">
+          <div className="mt-1 text-[10px] font-medium text-muted-foreground">
             Updated {timeAgo(priceData.reportedAt)}
           </div>
 
@@ -123,7 +127,13 @@ export const StationMarker = ({
             </div>
           )}
 
-          <div className={compactPopup ? "mt-3 rounded-2xl border border-border/50 bg-background/50 p-2.5" : "mt-4 rounded-2xl border border-border/50 bg-background/50 p-3"}>
+          <div
+            className={
+              compactPopup
+                ? "mt-3 rounded-2xl border border-border/55 bg-background/60 p-2.5"
+                : "mt-4 rounded-2xl border border-border/55 bg-background/60 p-3"
+            }
+          >
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 {priceAlert ? (
@@ -140,7 +150,7 @@ export const StationMarker = ({
                   onClick={() => onRemoveAlert(priceAlert.id)}
                   aria-label="Remove price alert"
                   tabIndex={0}
-                  className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  className="rounded-full bg-background/45 p-1 text-muted-foreground transition-colors hover:bg-background/80 hover:text-foreground"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -155,19 +165,27 @@ export const StationMarker = ({
                 step="0.1"
                 min="0"
                 aria-label="Alert threshold in cents per litre"
-                className={compactPopup ? "h-8 w-full rounded-xl border border-border/60 bg-background px-2.5 text-[13px] outline-none transition-colors focus:border-blue-500" : "h-9 w-full rounded-xl border border-border/60 bg-background px-3 text-sm outline-none transition-colors focus:border-blue-500"}
+                className={
+                  compactPopup
+                    ? "h-8 w-full rounded-xl border border-border/60 bg-background/90 px-2.5 text-[13px] outline-none transition-colors focus:border-blue-500"
+                    : "h-9 w-full rounded-xl border border-border/60 bg-background/90 px-3 text-sm outline-none transition-colors focus:border-blue-500"
+                }
               />
               <button
                 onClick={handleSaveAlert}
                 aria-label="Save price alert"
                 tabIndex={0}
-                className={compactPopup ? "rounded-xl bg-blue-500 px-2.5 py-2 text-[11px] font-semibold text-white transition-colors hover:bg-blue-600" : "rounded-xl bg-blue-500 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-600"}
+                className={
+                  compactPopup
+                    ? "rounded-xl bg-blue-600 px-2.5 py-2 text-[11px] font-semibold text-white transition-colors hover:bg-blue-700"
+                    : "rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-700"
+                }
               >
                 {priceAlert ? "Update" : "Set"}
               </button>
             </div>
 
-            <p className="mt-2 text-[11px] text-muted-foreground">
+            <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
               Alert me when this station drops to {alertValue || "0.0"}c/L or less.
             </p>
           </div>

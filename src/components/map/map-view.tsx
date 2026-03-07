@@ -523,7 +523,7 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
 
       {dataSource !== "loading" && (
         <div
-          className={`above-bottom-nav glass-pill absolute left-4 z-[1000] flex items-center gap-1.5 rounded-full text-[10px] font-medium md:bottom-4 ${
+          className={`above-bottom-nav glass-pill absolute left-4 z-[1000] flex max-w-[calc(100%-6.5rem)] items-center gap-1.5 rounded-full text-[10px] font-medium md:bottom-4 md:max-w-none ${
             compactOverlay ? "px-2 py-1" : "px-2.5 py-1"
           }`}
         >
@@ -532,7 +532,7 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
               dataSource === "live" ? "bg-green-500 animate-pulse" : "bg-amber-500"
             }`}
           />
-          <span className="text-muted-foreground">
+          <span className="truncate text-muted-foreground">
             {dataSource === "live"
               ? viewport.zoom < CLUSTER_BREAKPOINT_ZOOM && stationClusters.length > 0
                 ? compactOverlay
@@ -555,7 +555,7 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
             <BellRing className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" />
             <div className="min-w-0">
               <p className="text-xs font-semibold text-foreground">{toast.stationName}</p>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
                 {toast.fuelType.toUpperCase()} hit {formatPriceCents(toast.price)} under your{" "}
                 {formatPriceCents(toast.threshold)} alert.
               </p>

@@ -77,7 +77,7 @@ export const DonatePopup = ({ compact = false }: { compact?: boolean }) => {
               <div className="flex flex-col items-start leading-none">
                 <span className="text-[11px] font-semibold">{compact ? "Support" : "Support via BTC"}</span>
                 {!compact && (
-                  <span className="text-[10px] text-muted-foreground">A few sats goes a long way</span>
+                  <span className="text-[10px] text-muted-foreground">Help keep prices live and independent</span>
                 )}
               </div>
             </motion.button>
@@ -101,7 +101,7 @@ export const DonatePopup = ({ compact = false }: { compact?: boolean }) => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={quickFade}
-            className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/30 backdrop-blur-sm"
+            className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/24 backdrop-blur-sm"
             onClick={() => setExpanded(false)}
           >
             <motion.div
@@ -112,12 +112,12 @@ export const DonatePopup = ({ compact = false }: { compact?: boolean }) => {
               className="glass-panel-strong relative mx-4 w-full max-w-sm overflow-hidden rounded-[2rem] p-5"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-br from-orange-500/18 via-amber-400/12 to-transparent" />
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-br from-orange-500/14 via-amber-400/10 to-transparent" />
               <motion.div
                 aria-hidden="true"
                 animate={{ x: [0, 10, -6, 0], y: [0, -4, 6, 0], scale: [1, 1.04, 0.98, 1] }}
                 transition={{ duration: 8, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
-                className="pointer-events-none absolute -top-10 right-4 h-28 w-28 rounded-full bg-orange-400/18 blur-3xl"
+                className="pointer-events-none absolute -top-10 right-4 h-28 w-28 rounded-full bg-orange-400/14 blur-3xl"
               />
 
               <div className="flex items-center justify-between">
@@ -127,7 +127,9 @@ export const DonatePopup = ({ compact = false }: { compact?: boolean }) => {
                   </div>
                   <div>
                     <p className="text-sm font-semibold">Support ServoSight</p>
-                    <p className="text-[11px] text-muted-foreground">Keep live fuel tracking independent</p>
+                    <p className="text-[11px] leading-relaxed text-muted-foreground">
+                      Keep live fuel tracking independent
+                    </p>
                   </div>
                 </div>
                 <button
@@ -170,7 +172,7 @@ export const DonatePopup = ({ compact = false }: { compact?: boolean }) => {
                     transition={{ duration: 3.2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
                     className="absolute inset-2 rounded-[1.4rem] bg-orange-400/18 blur-2xl"
                   />
-                  <div className="depth-soft relative rounded-[1.5rem] bg-white p-3 ring-1 ring-border">
+                  <div className="depth-soft relative rounded-[1.5rem] bg-white p-3 ring-1 ring-black/5">
                     <QRCodeSVG
                       value={BTC_URI}
                       size={188}
@@ -192,7 +194,7 @@ export const DonatePopup = ({ compact = false }: { compact?: boolean }) => {
                   whileHover={{ y: -1 }}
                   whileTap={{ scale: 0.99 }}
                   transition={softSpring}
-                  className="glass-panel mt-2 flex w-full items-center gap-3 rounded-[1.1rem] px-3 py-3 text-left transition-colors hover:bg-muted/60"
+                  className="glass-panel mt-2 flex w-full items-center gap-3 rounded-[1.1rem] px-3 py-3 text-left transition-colors hover:bg-muted/50"
                   aria-label="Copy Bitcoin address"
                   tabIndex={0}
                 >
