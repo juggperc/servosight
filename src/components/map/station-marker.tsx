@@ -17,6 +17,7 @@ type StationMarkerProps = {
   priceAlert?: PriceAlert;
   onSaveAlert?: (station: StationWithPrices, fuelType: FuelTypeId, threshold: number) => void;
   onRemoveAlert?: (alertId: string) => void;
+  compactPopup?: boolean;
 };
 
 const getPriceTier = (price: number, cheap: number, expensive: number): string => {
@@ -40,6 +41,7 @@ export const StationMarker = ({
   priceAlert,
   onSaveAlert,
   onRemoveAlert,
+  compactPopup = false,
 }: StationMarkerProps) => {
   const priceData = station.prices[selectedFuel];
   if (!priceData) return null;
@@ -79,7 +81,7 @@ export const StationMarker = ({
       }}
     >
       <Popup>
-        <div className="min-w-[230px] p-4">
+        <div className={compactPopup ? "min-w-[210px] p-3" : "min-w-[230px] p-4"}>
           <div className="flex items-center gap-2">
             <div
               className="h-2 w-2 rounded-full"
@@ -121,7 +123,7 @@ export const StationMarker = ({
             </div>
           )}
 
-          <div className="mt-4 rounded-2xl border border-border/50 bg-background/50 p-3">
+          <div className={compactPopup ? "mt-3 rounded-2xl border border-border/50 bg-background/50 p-2.5" : "mt-4 rounded-2xl border border-border/50 bg-background/50 p-3"}>
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 {priceAlert ? (
@@ -153,13 +155,13 @@ export const StationMarker = ({
                 step="0.1"
                 min="0"
                 aria-label="Alert threshold in cents per litre"
-                className="h-9 w-full rounded-xl border border-border/60 bg-background px-3 text-sm outline-none transition-colors focus:border-blue-500"
+                className={compactPopup ? "h-8 w-full rounded-xl border border-border/60 bg-background px-2.5 text-[13px] outline-none transition-colors focus:border-blue-500" : "h-9 w-full rounded-xl border border-border/60 bg-background px-3 text-sm outline-none transition-colors focus:border-blue-500"}
               />
               <button
                 onClick={handleSaveAlert}
                 aria-label="Save price alert"
                 tabIndex={0}
-                className="rounded-xl bg-blue-500 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-600"
+                className={compactPopup ? "rounded-xl bg-blue-500 px-2.5 py-2 text-[11px] font-semibold text-white transition-colors hover:bg-blue-600" : "rounded-xl bg-blue-500 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-600"}
               >
                 {priceAlert ? "Update" : "Set"}
               </button>

@@ -33,6 +33,7 @@ const CLUSTER_BREAKPOINT_ZOOM = 10;
 type MapViewProps = {
   onStationSelect?: (station: StationWithPrices) => void;
   navLocation?: { lat: number; lng: number } | null;
+  compactOverlay?: boolean;
 };
 
 type FlyToState = {
@@ -169,7 +170,7 @@ const ClusterMarker = ({
   );
 };
 
-export const MapView = ({ onStationSelect, navLocation }: MapViewProps) => {
+export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }: MapViewProps) => {
   const [stations, setStations] = useState<StationWithPrices[]>([]);
   const [selectedFuel, setSelectedFuel] = useState<FuelTypeId>("u91");
   const [showHydrogen, setShowHydrogen] = useState(false);
@@ -481,6 +482,7 @@ export const MapView = ({ onStationSelect, navLocation }: MapViewProps) => {
             priceAlert={alertsByKey.get(`${station.id}:${selectedFuel}`)}
             onSaveAlert={handleSaveAlert}
             onRemoveAlert={handleRemoveAlert}
+            compactPopup={compactOverlay}
           />
         ))}
         {stationClusters.map((cluster) => (
@@ -520,7 +522,11 @@ export const MapView = ({ onStationSelect, navLocation }: MapViewProps) => {
       <LocateButton onLocate={handleLocate} />
 
       {dataSource !== "loading" && (
-        <div className="above-bottom-nav glass-pill absolute left-4 z-[1000] flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium md:bottom-4">
+        <div
+          className={`above-bottom-nav glass-pill absolute left-4 z-[1000] flex items-center gap-1.5 rounded-full text-[10px] font-medium md:bottom-4 ${
+            compactOverlay ? "px-2 py-1" : "px-2.5 py-1"
+          }`}
+        >
           <div
             className={`h-1.5 w-1.5 rounded-full ${
               dataSource === "live" ? "bg-green-500 animate-pulse" : "bg-amber-500"
@@ -529,8 +535,12 @@ export const MapView = ({ onStationSelect, navLocation }: MapViewProps) => {
           <span className="text-muted-foreground">
             {dataSource === "live"
               ? viewport.zoom < CLUSTER_BREAKPOINT_ZOOM && stationClusters.length > 0
-                ? `${visibleStations.length.toLocaleString()} stations · ${stationClusters.length} smart groups`
-                : `${freshnessFilteredStations.length.toLocaleString()} live NSW/TAS stations`
+                ? compactOverlay
+                  ? `${visibleStations.length.toLocaleString()} · ${stationClusters.length} groups`
+                  : `${visibleStations.length.toLocaleString()} stations · ${stationClusters.length} smart groups`
+                : compactOverlay
+                  ? `${freshnessFilteredStations.length.toLocaleString()} live`
+                  : `${freshnessFilteredStations.length.toLocaleString()} live NSW/TAS stations`
               : "Live NSW data unavailable"}
           </span>
         </div>

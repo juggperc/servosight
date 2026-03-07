@@ -10,6 +10,7 @@ export type TabId = "map" | "submit" | "search" | "deals" | "settings";
 type BottomNavProps = {
   activeTab: TabId;
   onTabChange: (tab: TabId) => void;
+  compact?: boolean;
 };
 
 const tabs: { id: TabId; label: string; icon: typeof Map }[] = [
@@ -20,17 +21,25 @@ const tabs: { id: TabId; label: string; icon: typeof Map }[] = [
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
-export const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
+export const BottomNav = ({ activeTab, onTabChange, compact = false }: BottomNavProps) => {
   return (
     <motion.nav
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
       transition={softSpring}
-      className="fixed inset-x-3 bottom-3 z-[2000] pb-safe md:inset-x-auto md:left-4 md:top-1/2 md:bottom-auto md:w-[88px] md:-translate-y-1/2"
+      className={cn(
+        "fixed inset-x-3 bottom-3 z-[2000] pb-safe md:inset-x-auto md:left-4 md:top-1/2 md:bottom-auto md:w-[88px] md:-translate-y-1/2",
+        compact && "max-md:bottom-2"
+      )}
       role="tablist"
       aria-label="Main navigation"
     >
-      <div className="glass-panel-strong flex items-center justify-around rounded-[1.9rem] px-2 py-2 shadow-[0_24px_58px_rgba(15,23,42,0.18)] md:h-full md:flex-col md:justify-start md:gap-1 md:rounded-[2rem] md:px-2 md:py-3">
+      <div
+        className={cn(
+          "glass-panel-strong flex items-center justify-around rounded-[1.9rem] px-2 py-2 shadow-[0_24px_58px_rgba(15,23,42,0.18)] md:h-full md:flex-col md:justify-start md:gap-1 md:rounded-[2rem] md:px-2 md:py-3",
+          compact && "max-md:rounded-[1.6rem] max-md:px-1.5 max-md:py-1.5"
+        )}
+      >
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -48,6 +57,7 @@ export const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
               transition={appleSpring}
               className={cn(
                 "group relative flex min-w-0 flex-1 flex-col items-center gap-1 rounded-[1.35rem] px-4 py-2.5 md:w-full md:flex-none md:px-2.5 md:py-3",
+                compact && "max-md:gap-0 max-md:px-3 max-md:py-2",
                 isActive
                   ? "text-foreground"
                   : "text-muted-foreground/70 hover:text-foreground/80"
@@ -118,6 +128,7 @@ export const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
                 transition={softSpring}
                 className={cn(
                   "text-[10px] leading-none transition-all duration-200",
+                  compact && "max-md:hidden",
                   isActive ? "font-semibold" : "font-medium"
                 )}
               >

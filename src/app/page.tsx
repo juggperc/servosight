@@ -28,6 +28,7 @@ const HomePage = () => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [navLocation, setNavLocation] = useState<{ lat: number; lng: number } | null>(null);
   const routeAbortRef = useRef<AbortController | null>(null);
+  const isOverlayDense = navigationOpen || routing || selectedStation !== null;
 
   const handleTabChange = useCallback((tab: TabId) => {
     setActiveTab(tab);
@@ -174,10 +175,14 @@ const HomePage = () => {
   return (
     <main className="fixed inset-0 overflow-hidden">
       <div className="h-full w-full md:pl-28">
-        <DynamicMap onStationSelect={handleStationSelect} navLocation={navLocation} />
+        <DynamicMap
+          onStationSelect={handleStationSelect}
+          navLocation={navLocation}
+          compactOverlay={isOverlayDense}
+        />
       </div>
 
-      <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
+      <BottomNav activeTab={activeTab} onTabChange={handleTabChange} compact={isOverlayDense} />
 
       <SubmitSheet open={submitOpen} onOpenChange={handleDrawerClose(setSubmitOpen)} />
       <SearchSheet open={searchOpen} onOpenChange={handleDrawerClose(setSearchOpen)} />
@@ -203,7 +208,7 @@ const HomePage = () => {
       />
 
       <IOSPrompt />
-      <DonatePopup />
+      <DonatePopup compact={isOverlayDense} />
     </main>
   );
 };

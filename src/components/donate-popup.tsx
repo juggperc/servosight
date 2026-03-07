@@ -12,7 +12,7 @@ import { appleSpring, fadeUp, quickFade, softSpring } from "@/lib/motion";
 const BTC_ADDRESS = "bc1pns9f80z2s3t4xyqx0sec9v63jfuxwhvjyxetfar3hwv7h0qke90qjcx4fu";
 const BTC_URI = `bitcoin:${BTC_ADDRESS}`;
 
-export const DonatePopup = () => {
+export const DonatePopup = ({ compact = false }: { compact?: boolean }) => {
   const { resolvedTheme } = useTheme();
   const [dismissed, setDismissed] = useLocalStorage("servo-donate-dismissed", false);
   const [expanded, setExpanded] = useState(false);
@@ -54,6 +54,7 @@ export const DonatePopup = () => {
             transition={softSpring}
             className={cn(
               "above-bottom-nav glass-pill fixed left-4 z-[1500] flex items-center gap-2 rounded-full px-3 py-2 md:bottom-4 md:left-32",
+              compact && "max-md:left-auto max-md:right-4 max-md:px-2.5 max-md:py-1.5"
             )}
           >
             <motion.button
@@ -74,8 +75,10 @@ export const DonatePopup = () => {
                 <Heart className="relative h-3.5 w-3.5" />
               </div>
               <div className="flex flex-col items-start leading-none">
-                <span className="text-[11px] font-semibold">Support via BTC</span>
-                <span className="text-[10px] text-muted-foreground">A few sats goes a long way</span>
+                <span className="text-[11px] font-semibold">{compact ? "Support" : "Support via BTC"}</span>
+                {!compact && (
+                  <span className="text-[10px] text-muted-foreground">A few sats goes a long way</span>
+                )}
               </div>
             </motion.button>
             <button

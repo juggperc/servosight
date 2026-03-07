@@ -78,7 +78,7 @@ export const NavigationSheet = ({
       direction="bottom"
     >
       <DrawerPrimitive.Portal>
-        <DrawerPrimitive.Content className="glass-panel-strong fixed inset-x-3 bottom-24 z-[1650] mx-auto flex w-auto max-w-md flex-col rounded-[30px] outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-bottom-4 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-bottom-4 md:bottom-6 md:left-32 md:right-auto md:w-full">
+        <DrawerPrimitive.Content className="glass-panel-strong fixed inset-x-3 bottom-[4.5rem] z-[1650] mx-auto flex w-auto max-w-md flex-col rounded-[26px] outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-bottom-4 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-bottom-4 md:bottom-6 md:left-32 md:right-auto md:max-w-md md:rounded-[30px] md:w-full">
           <DrawerPrimitive.Title className="sr-only">Satnav</DrawerPrimitive.Title>
           <DrawerPrimitive.Description className="sr-only">
             Compact live navigation widget with the next two turns.
@@ -90,7 +90,7 @@ export const NavigationSheet = ({
             initial={fadeUp.initial}
             animate={fadeUp.animate}
             transition={softSpring}
-            className="space-y-3 p-4 pb-5"
+            className="space-y-2.5 p-3.5 pb-4 md:space-y-3 md:p-4 md:pb-5"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -102,7 +102,7 @@ export const NavigationSheet = ({
                     <p className="truncate text-sm font-semibold text-foreground">
                       {station?.name ?? "Satnav"}
                     </p>
-                    <p className="truncate text-xs text-muted-foreground">
+                    <p className="truncate text-[11px] text-muted-foreground md:text-xs">
                       {station?.suburb || station?.address || "Preparing route"}
                     </p>
                   </div>
@@ -173,7 +173,7 @@ export const NavigationSheet = ({
                   transition={appleSpring}
                   className="space-y-3"
                 >
-                  <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-medium text-muted-foreground md:gap-2 md:text-[11px]">
                     <span className="rounded-full bg-blue-500/10 px-2.5 py-1 text-blue-600 dark:text-blue-400">
                       Step {Math.min(currentStepIndex + 1, route.steps.length)}/{route.steps.length}
                     </span>
@@ -190,13 +190,13 @@ export const NavigationSheet = ({
                   <motion.div
                     layout
                     transition={appleSpring}
-                    className="rounded-[24px] bg-gradient-to-br from-blue-500/16 via-blue-500/8 to-background p-4 ring-1 ring-blue-500/12"
+                    className="rounded-[20px] bg-gradient-to-br from-blue-500/16 via-blue-500/8 to-background p-3.5 ring-1 ring-blue-500/12 md:rounded-[24px] md:p-4"
                   >
                     <div className="flex items-start gap-3">
                       <motion.div
                         layout
                         transition={appleSpring}
-                        className="mt-0.5 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-500 text-white shadow-lg shadow-blue-500/20"
+                        className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-500 text-white shadow-lg shadow-blue-500/20 md:h-11 md:w-11"
                       >
                         <UpcomingIcon className="h-5 w-5" />
                       </motion.div>
@@ -204,10 +204,10 @@ export const NavigationSheet = ({
                         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400">
                           Upcoming
                         </p>
-                        <p className="mt-1 text-lg font-semibold tracking-tight text-foreground">
+                        <p className="mt-1 text-base font-semibold tracking-tight text-foreground md:text-lg">
                           {upcomingStep.instruction}
                         </p>
-                        <p className="mt-2 text-sm text-muted-foreground">
+                        <p className="mt-1.5 text-[13px] text-muted-foreground md:mt-2 md:text-sm">
                           In {formatDistance(upcomingStep.distance)} · {formatDuration(upcomingStep.duration)}
                         </p>
                       </div>
@@ -217,7 +217,7 @@ export const NavigationSheet = ({
                   <motion.div
                     layout
                     transition={appleSpring}
-                    className="glass-panel rounded-[22px] px-4 py-3"
+                    className="glass-panel rounded-[18px] px-3.5 py-2.5 md:rounded-[22px] md:px-4 md:py-3"
                   >
                     <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                       Then
