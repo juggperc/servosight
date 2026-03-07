@@ -4,6 +4,8 @@ import type { StationWithPrices, FuelTypeId } from "@/lib/types";
 import { formatPriceCents } from "@/lib/utils";
 import { getFuelType } from "@/lib/data/fuel-types";
 import { MapPin, TrendingDown, Trophy } from "lucide-react";
+import { motion } from "motion/react";
+import { fadeUp, softSpring } from "@/lib/motion";
 
 type DealCardProps = {
   station: StationWithPrices;
@@ -23,11 +25,15 @@ export const DealCard = ({ station, fuelType, rank, averagePrice, index = 0 }: D
   const isTopDeal = rank === 1;
 
   return (
-    <div
-      className={`animate-fade-in-up relative overflow-hidden rounded-2xl border bg-card p-4 shadow-sm transition-all duration-200 hover:shadow-md ${
+    <motion.div
+      initial={fadeUp.initial}
+      animate={fadeUp.animate}
+      transition={{ ...softSpring, delay: index * 0.05 }}
+      whileHover={{ y: -2 }}
+      whileTap={{ scale: 0.985 }}
+      className={`glass-panel relative overflow-hidden rounded-[1.6rem] p-4 transition-all ${
         isTopDeal ? "border-green-500/30 ring-1 ring-green-500/10" : "border-border/60"
       }`}
-      style={{ animationDelay: `${index * 60}ms`, animationFillMode: "backwards" }}
     >
       {rank <= 3 && (
         <div className={`absolute top-0 right-0 flex items-center gap-1 rounded-bl-xl px-3 py-1.5 ${
@@ -58,7 +64,7 @@ export const DealCard = ({ station, fuelType, rank, averagePrice, index = 0 }: D
 
       <div className="mt-3 flex items-end justify-between border-t border-border/40 pt-3">
         <div>
-          <p className="text-2xl font-extrabold tabular-nums tracking-tighter text-card-foreground">
+          <p className="font-price text-2xl font-extrabold tracking-tighter text-card-foreground">
             {formatPriceCents(priceData.price)}
           </p>
           <p className="text-[11px] text-muted-foreground">{fuelInfo.label}</p>
@@ -71,6 +77,6 @@ export const DealCard = ({ station, fuelType, rank, averagePrice, index = 0 }: D
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 };

@@ -378,7 +378,7 @@ export const MapView = ({ onStationSelect, navLocation }: MapViewProps) => {
       <LocateButton onLocate={handleLocate} />
 
       {dataSource !== "loading" && (
-        <div className="absolute bottom-20 left-4 z-[1000] flex items-center gap-1.5 rounded-full bg-background/90 px-2.5 py-1 text-[10px] font-medium shadow-sm ring-1 ring-border/50 backdrop-blur-sm md:bottom-4">
+        <div className="glass-pill absolute bottom-20 left-4 z-[1000] flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium md:bottom-4">
           <div
             className={`h-1.5 w-1.5 rounded-full ${
               dataSource === "live" ? "bg-green-500 animate-pulse" : "bg-amber-500"
@@ -395,7 +395,7 @@ export const MapView = ({ onStationSelect, navLocation }: MapViewProps) => {
       )}
 
       {dataSource === "unavailable" && (
-        <div className="pointer-events-none absolute inset-x-4 top-24 z-[1000] mx-auto max-w-sm rounded-2xl bg-background/92 p-4 text-center shadow-lg ring-1 ring-border/60 backdrop-blur-md">
+        <div className="glass-panel-strong pointer-events-none absolute inset-x-4 top-24 z-[1000] mx-auto max-w-sm rounded-[1.6rem] p-4 text-center">
           <p className="text-sm font-semibold text-foreground">Waiting for live NSW data</p>
           <p className="mt-1 text-xs text-muted-foreground">
             Fuel data is loaded from the NSW Government API. Once it responds, stations will

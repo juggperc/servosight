@@ -4,6 +4,8 @@ import { STANDARD_FUEL_TYPES } from "@/lib/data/fuel-types";
 import type { FuelTypeId } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Zap, Atom } from "lucide-react";
+import { motion } from "motion/react";
+import { softSpring } from "@/lib/motion";
 
 type FuelFilterProps = {
   selectedFuel: FuelTypeId;
@@ -25,56 +27,65 @@ export const FuelFilter = ({
   return (
     <div className="absolute top-4 left-4 right-4 z-[1000] flex items-center gap-2 overflow-x-auto pb-1 md:left-auto md:right-4 md:max-w-md">
       {STANDARD_FUEL_TYPES.map((fuel) => (
-        <button
+        <motion.button
           key={fuel.id}
           onClick={() => onFuelChange(fuel.id)}
           aria-label={`Filter by ${fuel.label}`}
           aria-pressed={selectedFuel === fuel.id}
           tabIndex={0}
+          whileHover={{ y: -1 }}
+          whileTap={{ scale: 0.96 }}
+          transition={softSpring}
           className={cn(
-            "shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold shadow-md transition-all active:scale-95",
+            "glass-pill shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-all",
             selectedFuel === fuel.id
-              ? "bg-foreground text-background"
-              : "bg-background/90 text-foreground backdrop-blur-sm ring-1 ring-border"
+              ? "bg-foreground text-background shadow-[0_16px_24px_rgba(15,23,42,0.16)] dark:bg-white dark:text-black"
+              : "text-foreground"
           )}
         >
           {fuel.shortLabel}
-        </button>
+        </motion.button>
       ))}
 
       <div className="mx-0.5 h-5 w-px shrink-0 bg-border" />
 
-      <button
+      <motion.button
         onClick={() => onEvChange(!showEv)}
         aria-label="Toggle EV charging stations"
         aria-pressed={showEv}
         tabIndex={0}
+        whileHover={{ y: -1 }}
+        whileTap={{ scale: 0.96 }}
+        transition={softSpring}
         className={cn(
-          "flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold shadow-md transition-all active:scale-95",
+          "glass-pill flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold transition-all",
           showEv
             ? "bg-green-500 text-white"
-            : "bg-background/90 text-foreground backdrop-blur-sm ring-1 ring-border"
+            : "text-foreground"
         )}
       >
         <Zap className="h-3 w-3" />
         EV
-      </button>
+      </motion.button>
 
-      <button
+      <motion.button
         onClick={() => onHydrogenChange(!showHydrogen)}
         aria-label="Toggle hydrogen stations"
         aria-pressed={showHydrogen}
         tabIndex={0}
+        whileHover={{ y: -1 }}
+        whileTap={{ scale: 0.96 }}
+        transition={softSpring}
         className={cn(
-          "flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold shadow-md transition-all active:scale-95",
+          "glass-pill flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold transition-all",
           showHydrogen
             ? "bg-blue-500 text-white"
-            : "bg-background/90 text-foreground backdrop-blur-sm ring-1 ring-border"
+            : "text-foreground"
         )}
       >
         <Atom className="h-3 w-3" />
         H₂
-      </button>
+      </motion.button>
     </div>
   );
 };

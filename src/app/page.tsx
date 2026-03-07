@@ -173,7 +173,7 @@ const HomePage = () => {
 
   return (
     <main className="fixed inset-0 overflow-hidden">
-      <div className="h-full w-full md:pl-20">
+      <div className="h-full w-full md:pl-28">
         <DynamicMap onStationSelect={handleStationSelect} navLocation={navLocation} />
       </div>
 

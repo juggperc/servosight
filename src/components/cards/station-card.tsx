@@ -4,6 +4,8 @@ import type { StationWithPrices, FuelTypeId } from "@/lib/types";
 import { formatPriceCents, timeAgo } from "@/lib/utils";
 import { getFuelType } from "@/lib/data/fuel-types";
 import { MapPin, Clock, Zap, Atom } from "lucide-react";
+import { motion } from "motion/react";
+import { fadeUp, softSpring } from "@/lib/motion";
 
 type StationCardProps = {
   station: StationWithPrices;
@@ -17,9 +19,13 @@ export const StationCard = ({ station, fuelType, showDistance, index = 0 }: Stat
   const fuelInfo = getFuelType(fuelType);
 
   return (
-    <div
-      className="animate-fade-in-up rounded-2xl border border-border/60 bg-card p-4 shadow-sm transition-all duration-200 ease-out hover:shadow-md hover:border-border active:scale-[0.98]"
-      style={{ animationDelay: `${index * 50}ms`, animationFillMode: "backwards" }}
+    <motion.div
+      initial={fadeUp.initial}
+      animate={fadeUp.animate}
+      transition={{ ...softSpring, delay: index * 0.04 }}
+      whileHover={{ y: -2 }}
+      whileTap={{ scale: 0.985 }}
+      className="glass-panel rounded-[1.6rem] p-4 transition-all"
     >
       <div className="flex items-start justify-between">
         <div className="min-w-0 flex-1">
@@ -31,7 +37,7 @@ export const StationCard = ({ station, fuelType, showDistance, index = 0 }: Stat
         </div>
         {priceData && (
           <div className="ml-3 text-right">
-            <p className="text-xl font-extrabold tabular-nums tracking-tighter text-card-foreground">
+            <p className="font-price text-xl font-extrabold tracking-tighter text-card-foreground">
               {formatPriceCents(priceData.price)}
             </p>
             <p className="text-[10px] font-medium text-muted-foreground">{fuelInfo.shortLabel}/L</p>
@@ -64,6 +70,6 @@ export const StationCard = ({ station, fuelType, showDistance, index = 0 }: Stat
           </span>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 };

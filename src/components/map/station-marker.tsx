@@ -65,7 +65,7 @@ export const StationMarker = ({
       </div>
       <div style="font-size:11px;opacity:0.55;margin-left:16px;">${station.address}, ${station.suburb}</div>
       <div style="margin-top:12px;display:flex;align-items:baseline;gap:6px;">
-        <span style="font-size:26px;font-weight:800;letter-spacing:-0.03em;color:${accentColor};">${formatPriceCents(priceData.price)}</span>
+        <span style="font-size:26px;font-weight:800;letter-spacing:0.04em;font-family:var(--font-geist-pixel-square),var(--font-geist-mono),monospace;color:${accentColor};">${formatPriceCents(priceData.price)}</span>
         <span style="font-size:11px;opacity:0.5;">${fuelInfo.label}/L</span>
       </div>
       <div style="margin-top:6px;font-size:10px;opacity:0.45;">Updated ${timeAgo(priceData.reportedAt)}</div>
