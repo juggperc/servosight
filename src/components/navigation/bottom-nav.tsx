@@ -57,16 +57,45 @@ export const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
                 <motion.div
                   layoutId="bottom-nav-highlight"
                   transition={appleSpring}
-                  className="absolute inset-0 rounded-[1.35rem] bg-white/65 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_12px_24px_rgba(15,23,42,0.1)] ring-1 ring-white/60 dark:bg-white/8 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_18px_28px_rgba(0,0,0,0.22)] dark:ring-white/10"
+                  className="absolute inset-0 rounded-[1.35rem] bg-white/45 ring-1 ring-white/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_14px_28px_rgba(15,23,42,0.08)] dark:bg-white/6 dark:ring-white/8 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_18px_28px_rgba(0,0,0,0.2)]"
                 />
               )}
               <div className="relative flex h-8 w-8 items-center justify-center">
                 {isActive && (
-                  <motion.div
-                    layoutId="bottom-nav-icon-glow"
-                    transition={softSpring}
-                    className="absolute inset-0 rounded-2xl bg-blue-500/10 dark:bg-blue-400/12"
-                  />
+                  <>
+                    <motion.div
+                      layoutId="bottom-nav-loupe"
+                      animate={{
+                        scale: [1, 1.04, 0.98, 1],
+                        rotate: [0, 3, -2, 0],
+                      }}
+                      transition={{
+                        ...appleSpring,
+                        repeat: Number.POSITIVE_INFINITY,
+                        duration: 5.4,
+                      }}
+                      className="absolute -inset-2 rounded-full bg-[radial-gradient(circle_at_30%_28%,rgba(255,255,255,0.96),rgba(255,255,255,0.62)_28%,rgba(191,219,254,0.36)_54%,rgba(147,197,253,0.18)_70%,rgba(255,255,255,0.08)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_12px_18px_rgba(59,130,246,0.16)] ring-1 ring-white/70 dark:bg-[radial-gradient(circle_at_30%_28%,rgba(255,255,255,0.16),rgba(255,255,255,0.08)_28%,rgba(59,130,246,0.18)_56%,rgba(125,211,252,0.14)_74%,rgba(255,255,255,0.04)_100%)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_14px_22px_rgba(59,130,246,0.18)] dark:ring-white/12"
+                    />
+                    <motion.div
+                      layoutId="bottom-nav-loupe-gloss"
+                      animate={{
+                        opacity: [0.62, 0.88, 0.62],
+                        x: [0, 2, 0],
+                        y: [0, -1, 0],
+                      }}
+                      transition={{
+                        duration: 3.8,
+                        repeat: Number.POSITIVE_INFINITY,
+                        ease: "easeInOut",
+                      }}
+                      className="absolute left-0 top-0 h-4 w-5 rounded-full bg-white/75 blur-[1px] dark:bg-white/18"
+                    />
+                    <motion.div
+                      layoutId="bottom-nav-icon-glow"
+                      transition={softSpring}
+                      className="absolute -inset-3 rounded-full bg-blue-400/12 blur-md dark:bg-blue-400/16"
+                    />
+                  </>
                 )}
                 <Icon
                   className={cn(

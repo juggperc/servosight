@@ -378,7 +378,7 @@ export const MapView = ({ onStationSelect, navLocation }: MapViewProps) => {
       <LocateButton onLocate={handleLocate} />
 
       {dataSource !== "loading" && (
-        <div className="glass-pill absolute bottom-20 left-4 z-[1000] flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium md:bottom-4">
+        <div className="above-bottom-nav glass-pill absolute left-4 z-[1000] flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium md:bottom-4">
           <div
             className={`h-1.5 w-1.5 rounded-full ${
               dataSource === "live" ? "bg-green-500 animate-pulse" : "bg-amber-500"
