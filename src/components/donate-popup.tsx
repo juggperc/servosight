@@ -53,7 +53,7 @@ export const DonatePopup = () => {
             exit={{ opacity: 0, x: -14, y: 8, filter: "blur(8px)" }}
             transition={softSpring}
             className={cn(
-              "glass-pill fixed left-4 bottom-20 z-[1500] flex items-center gap-2 rounded-full px-3 py-2 md:bottom-4 md:left-32",
+              "above-bottom-nav glass-pill fixed left-4 z-[1500] flex items-center gap-2 rounded-full px-3 py-2 md:bottom-4 md:left-32",
             )}
           >
             <motion.button
