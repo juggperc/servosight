@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { useTheme } from "next-themes";
-import { X, Heart, Copy, Check } from "lucide-react";
+import { X, Heart, Copy, Check, Coins, Sparkles } from "lucide-react";
 import { useLocalStorage } from "@/lib/hooks/use-local-storage";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "motion/react";
@@ -53,23 +53,34 @@ export const DonatePopup = () => {
             exit={{ opacity: 0, x: -14, y: 8, filter: "blur(8px)" }}
             transition={softSpring}
             className={cn(
-              "glass-pill fixed left-4 bottom-20 z-[1500] flex items-center gap-2 rounded-full px-3.5 py-2 md:bottom-4 md:left-32",
+              "glass-pill fixed left-4 bottom-20 z-[1500] flex items-center gap-2 rounded-full px-3 py-2 md:bottom-4 md:left-32",
             )}
           >
             <motion.button
               onClick={() => setExpanded(true)}
+              whileHover={{ y: -1 }}
               whileTap={{ scale: 0.98 }}
               transition={quickFade}
               className="flex items-center gap-2 text-xs font-medium text-foreground"
               aria-label="Show Bitcoin donation info"
               tabIndex={0}
             >
-              <Heart className="h-3.5 w-3.5 text-orange-500" />
-              <span>Support via BTC</span>
+              <div className="relative flex h-6 w-6 items-center justify-center rounded-full bg-orange-500/12 text-orange-500">
+                <motion.div
+                  animate={{ scale: [1, 1.18, 1], opacity: [0.16, 0.32, 0.16] }}
+                  transition={{ duration: 2.6, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+                  className="absolute inset-0 rounded-full bg-orange-500/30"
+                />
+                <Heart className="relative h-3.5 w-3.5" />
+              </div>
+              <div className="flex flex-col items-start leading-none">
+                <span className="text-[11px] font-semibold">Support via BTC</span>
+                <span className="text-[10px] text-muted-foreground">A few sats goes a long way</span>
+              </div>
             </motion.button>
             <button
               onClick={handleDismiss}
-              className="ml-1 rounded-full p-0.5 text-muted-foreground transition-colors hover:text-foreground"
+              className="ml-1 rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
               aria-label="Dismiss donation prompt"
               tabIndex={0}
             >
@@ -95,13 +106,26 @@ export const DonatePopup = () => {
               animate={fadeUp.animate}
               exit={fadeUp.exit}
               transition={appleSpring}
-              className="glass-panel-strong mx-4 w-full max-w-xs rounded-[1.8rem] p-5"
+              className="glass-panel-strong relative mx-4 w-full max-w-sm overflow-hidden rounded-[2rem] p-5"
               onClick={(e) => e.stopPropagation()}
             >
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-br from-orange-500/18 via-amber-400/12 to-transparent" />
+              <motion.div
+                aria-hidden="true"
+                animate={{ x: [0, 10, -6, 0], y: [0, -4, 6, 0], scale: [1, 1.04, 0.98, 1] }}
+                transition={{ duration: 8, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+                className="pointer-events-none absolute -top-10 right-4 h-28 w-28 rounded-full bg-orange-400/18 blur-3xl"
+              />
+
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Heart className="h-4 w-4 text-orange-500" />
-                  <p className="text-sm font-semibold">Support ServoSight</p>
+                  <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-orange-500/12 text-orange-500 ring-1 ring-orange-500/15">
+                    <Coins className="h-4.5 w-4.5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">Support ServoSight</p>
+                    <p className="text-[11px] text-muted-foreground">Keep live fuel tracking independent</p>
+                  </div>
                 </div>
                 <button
                   onClick={() => setExpanded(false)}
@@ -113,51 +137,103 @@ export const DonatePopup = () => {
                 </button>
               </div>
 
-              <p className="mt-2 text-xs text-muted-foreground">
-                If ServoSight saves you money at the pump, consider sending a few sats.
+              <div className="mt-4 flex flex-wrap gap-2">
+                <div className="glass-pill inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium text-foreground/85">
+                  <Sparkles className="h-3 w-3 text-orange-500" />
+                  Community funded
+                </div>
+                <div className="glass-pill inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium text-foreground/85">
+                  <Heart className="h-3 w-3 text-orange-500" />
+                  Bitcoin only
+                </div>
+              </div>
+
+              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                If ServoSight saves you money at the pump, consider sending a few sats to help
+                keep the app fast, live, and expanding across more states.
               </p>
 
               <div className="mt-4 flex justify-center">
-                <a
+                <motion.a
                   href={BTC_URI}
-                  className="depth-soft rounded-[1.4rem] bg-white p-3 ring-1 ring-border"
                   aria-label="Open Bitcoin wallet"
+                  whileHover={{ y: -2, scale: 1.01 }}
+                  transition={softSpring}
+                  className="relative rounded-[1.6rem]"
                 >
-                  <QRCodeSVG
-                    value={BTC_URI}
-                    size={180}
-                    bgColor="#ffffff"
-                    fgColor={resolvedTheme === "dark" ? "#1a1a1a" : "#0a0a0a"}
-                    level="M"
-                    includeMargin={false}
+                  <motion.div
+                    aria-hidden="true"
+                    animate={{ scale: [1, 1.04, 1], opacity: [0.42, 0.6, 0.42] }}
+                    transition={{ duration: 3.2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+                    className="absolute inset-2 rounded-[1.4rem] bg-orange-400/18 blur-2xl"
                   />
-                </a>
+                  <div className="depth-soft relative rounded-[1.5rem] bg-white p-3 ring-1 ring-border">
+                    <QRCodeSVG
+                      value={BTC_URI}
+                      size={188}
+                      bgColor="#ffffff"
+                      fgColor={resolvedTheme === "dark" ? "#1a1a1a" : "#0a0a0a"}
+                      level="M"
+                      includeMargin={false}
+                    />
+                  </div>
+                </motion.a>
               </div>
 
-              <div className="mt-4">
-                <p className="text-center text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              <div className="mt-5">
+                <p className="text-center text-[10px] font-medium uppercase tracking-[0.22em] text-muted-foreground">
                   Bitcoin (BTC)
                 </p>
-                <button
+                <motion.button
                   onClick={handleCopy}
-                  className="glass-panel mt-1.5 flex w-full items-center gap-2 rounded-[1rem] px-3 py-2 text-left transition-colors hover:bg-muted/60"
+                  whileHover={{ y: -1 }}
+                  whileTap={{ scale: 0.99 }}
+                  transition={softSpring}
+                  className="glass-panel mt-2 flex w-full items-center gap-3 rounded-[1.1rem] px-3 py-3 text-left transition-colors hover:bg-muted/60"
                   aria-label="Copy Bitcoin address"
                   tabIndex={0}
                 >
-                  <span className="min-w-0 flex-1 truncate font-mono text-[10px] text-foreground">
-                    {BTC_ADDRESS}
-                  </span>
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-background/75 ring-1 ring-border/60">
+                    {copied ? (
+                      <Check className="h-3.5 w-3.5 text-green-500" />
+                    ) : (
+                      <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                      Copy address
+                    </p>
+                    <span className="mt-0.5 block truncate font-mono text-[11px] text-foreground">
+                      {BTC_ADDRESS}
+                    </span>
+                  </div>
+                </motion.button>
+                <AnimatePresence mode="wait" initial={false}>
                   {copied ? (
-                    <Check className="h-3.5 w-3.5 shrink-0 text-green-500" />
+                    <motion.p
+                      key="copied"
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={quickFade}
+                      className="mt-2 text-center text-[10px] font-medium text-green-500"
+                    >
+                      Address copied to clipboard
+                    </motion.p>
                   ) : (
-                    <Copy className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    <motion.p
+                      key="hint"
+                      initial={{ opacity: 0.6 }}
+                      animate={{ opacity: 0.8 }}
+                      exit={{ opacity: 0 }}
+                      transition={quickFade}
+                      className="mt-2 text-center text-[10px] text-muted-foreground"
+                    >
+                      Scan with a wallet or tap to copy
+                    </motion.p>
                   )}
-                </button>
-                {copied && (
-                  <p className="mt-1 text-center text-[10px] font-medium text-green-500">
-                    Copied to clipboard
-                  </p>
-                )}
+                </AnimatePresence>
               </div>
             </motion.div>
           </motion.div>
