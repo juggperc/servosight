@@ -194,7 +194,11 @@ const HomePage = () => {
 
       <BottomNav activeTab={activeTab} onTabChange={handleTabChange} compact={isOverlayDense} />
 
-      <SubmitSheet open={submitOpen} onOpenChange={handleDrawerClose(setSubmitOpen)} />
+      <SubmitSheet
+        open={submitOpen}
+        onOpenChange={handleDrawerClose(setSubmitOpen)}
+        onSuccess={() => window.location.reload()}
+      />
       <SearchSheet open={searchOpen} onOpenChange={handleDrawerClose(setSearchOpen)} />
       <DealsSheet open={dealsOpen} onOpenChange={handleDrawerClose(setDealsOpen)} />
       <SettingsSheet open={settingsOpen} onOpenChange={handleDrawerClose(setSettingsOpen)} />

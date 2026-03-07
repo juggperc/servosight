@@ -9,6 +9,7 @@ import { fetchWaPricesBundle, type WaStation } from "@/lib/wa-fuel-api";
 
 // User-submitted prices overlay
 let userPriceReports: PriceReport[] = [];
+let userStations: Station[] = [];
 
 // Cached converted live data
 let nswStations: Station[] = [];
@@ -142,7 +143,7 @@ const syncWaData = async (): Promise<void> => {
 
 const getAllStations = async (): Promise<Station[]> => {
   await Promise.all([syncNswData(), syncWaData()]);
-  return [...nswStations, ...waStations];
+  return [...nswStations, ...waStations, ...userStations];
 };
 
 export const getStation = async (id: string): Promise<Station | undefined> => {
@@ -226,6 +227,26 @@ export const addPriceReport = (report: Omit<PriceReport, "id" | "reportedAt">): 
   };
   userPriceReports.push(newReport);
   return newReport;
+};
+
+export const addUserStation = (
+  stationInfo: { name: string; lat: number; lng: number }
+): Station => {
+  const newStation: Station = {
+    id: `user-stn-${Date.now()}`,
+    name: stationInfo.name,
+    brand: "Independent",
+    address: "User Reported Location",
+    suburb: "Unknown",
+    state: "Unknown",
+    lat: stationInfo.lat,
+    lng: stationInfo.lng,
+    fuelTypes: [],
+    hasHydrogen: false,
+    hasEv: false,
+  };
+  userStations.push(newStation);
+  return newStation;
 };
 
 export const getBestDeals = async (

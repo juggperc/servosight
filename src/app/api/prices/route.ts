@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { addPriceReport, getStation } from "@/lib/store";
+import { addPriceReport, getStation, addUserStation } from "@/lib/store";
 import { FUEL_TYPES } from "@/lib/data/fuel-types";
 import type { FuelTypeId } from "@/lib/types";
 
@@ -8,19 +8,30 @@ export const runtime = "nodejs";
 export const POST = async (request: NextRequest) => {
   try {
     const body = await request.json();
-    const { stationId, fuelType, price } = body as {
+    let { stationId, fuelType, price, lat, lng, stationName } = body as {
       stationId: string;
       fuelType: FuelTypeId;
       price: number;
+      lat?: number;
+      lng?: number;
+      stationName?: string;
     };
 
     if (!stationId || !fuelType || !price) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const station = await getStation(stationId);
-    if (!station) {
-      return NextResponse.json({ error: "Station not found" }, { status: 404 });
+    if (stationId === "NEW_STATION") {
+      if (lat === undefined || lng === undefined || !stationName) {
+        return NextResponse.json({ error: "Missing properties for new station drop" }, { status: 400 });
+      }
+      const created = addUserStation({ name: stationName, lat, lng });
+      stationId = created.id;
+    } else {
+      const station = await getStation(stationId);
+      if (!station) {
+        return NextResponse.json({ error: "Station not found" }, { status: 404 });
+      }
     }
 
     const validFuelTypes = FUEL_TYPES.map((f) => f.id);

@@ -4,6 +4,8 @@ import type { FuelTypeId, StationWithPrices } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
 const PETROLSPY_JSON_API = "https://petrolspy.com.au/webservice-1/station/box";
 
