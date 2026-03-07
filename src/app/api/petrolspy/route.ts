@@ -20,7 +20,7 @@ const FUEL_TYPE_MAP: Record<string, FuelTypeId> = {
 };
 
 const MAX_RETRIES = 2;
-const RETRY_DELAY_MS = 800;
+const RETRY_DELAY_MS = 300;
 
 async function fetchWithRetry(url: string, init: RequestInit, retries = MAX_RETRIES): Promise<Response> {
   for (let attempt = 0; attempt <= retries; attempt++) {
@@ -81,7 +81,7 @@ export const GET = async (request: NextRequest) => {
         Origin: "https://petrolspy.com.au",
       },
       cache: "no-store",
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(8000),
     });
 
     if (!res.ok) {

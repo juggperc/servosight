@@ -614,13 +614,7 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
         </div>
       )}
 
-      {countrywideMode && (
-        <div className="pointer-events-none absolute bottom-[13rem] right-4 z-[1000] md:bottom-32 md:right-4">
-          <div className="rounded-full bg-black/40 backdrop-blur-md px-2.5 py-1.5 ring-1 ring-white/10 shadow-lg">
-            <span className="text-[9px] font-bold text-white/50 uppercase tracking-[0.15em] pl-1 pr-0.5">ServoSight Countrywide</span>
-          </div>
-        </div>
-      )}
+
 
       <div className="pointer-events-none absolute right-4 top-[7.25rem] z-[1100] flex max-w-xs flex-col gap-2 md:top-4">
         {alertToasts.map((toast) => (
