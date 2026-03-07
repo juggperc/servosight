@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Marker, Popup } from "react-leaflet";
 import L from "leaflet";
+import { useAppHaptics } from "@/components/haptics-provider";
 import type { StationWithPrices, FuelTypeId, PriceAlert } from "@/lib/types";
 import { formatPriceCents, timeAgo } from "@/lib/utils";
 import { getFuelType } from "@/lib/data/fuel-types";
@@ -43,6 +44,7 @@ export const StationMarker = ({
   onRemoveAlert,
   compactPopup = false,
 }: StationMarkerProps) => {
+  const haptics = useAppHaptics();
   const priceData = station.prices[selectedFuel];
   if (!priceData) return null;
 
@@ -68,7 +70,11 @@ export const StationMarker = ({
 
   const handleSaveAlert = () => {
     const parsed = Number.parseFloat(alertValue);
-    if (Number.isNaN(parsed) || parsed <= 0) return;
+    if (Number.isNaN(parsed) || parsed <= 0) {
+      haptics.warning();
+      return;
+    }
+    haptics.success();
     onSaveAlert?.(station, selectedFuel, Math.round(parsed * 10));
   };
 
@@ -77,7 +83,10 @@ export const StationMarker = ({
       position={[station.lat, station.lng]}
       icon={icon}
       eventHandlers={{
-        click: () => onSelect?.(station),
+        click: () => {
+          haptics.stationSelect();
+          onSelect?.(station);
+        },
       }}
     >
       <Popup>
@@ -147,7 +156,10 @@ export const StationMarker = ({
               </div>
               {priceAlert && onRemoveAlert ? (
                 <button
-                  onClick={() => onRemoveAlert(priceAlert.id)}
+                  onClick={() => {
+                    haptics.dismiss();
+                    onRemoveAlert(priceAlert.id);
+                  }}
                   aria-label="Remove price alert"
                   tabIndex={0}
                   className="rounded-full bg-background/45 p-1 text-muted-foreground transition-colors hover:bg-background/80 hover:text-foreground"

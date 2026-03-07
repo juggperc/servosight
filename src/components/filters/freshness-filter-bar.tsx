@@ -1,6 +1,7 @@
 "use client";
 
 import type { FreshnessFilterId } from "@/lib/types";
+import { useAppHaptics } from "@/components/haptics-provider";
 import { FRESHNESS_OPTIONS } from "@/lib/freshness";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +16,8 @@ export const FreshnessFilterBar = ({
   onChange,
   className,
 }: FreshnessFilterBarProps) => {
+  const haptics = useAppHaptics();
+
   return (
     <div className={cn("flex flex-wrap items-center gap-2", className)}>
       <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -23,7 +26,11 @@ export const FreshnessFilterBar = ({
       {FRESHNESS_OPTIONS.map((option) => (
         <button
           key={option.id}
-          onClick={() => onChange(option.id)}
+          onClick={() => {
+            if (value === option.id) return;
+            haptics.toggleChange(true);
+            onChange(option.id);
+          }}
           aria-label={`Show ${option.label} updates`}
           aria-pressed={value === option.id}
           tabIndex={0}

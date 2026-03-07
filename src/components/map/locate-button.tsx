@@ -1,8 +1,9 @@
 "use client";
 
 import { Crosshair, Loader2 } from "lucide-react";
+import { useAppHaptics } from "@/components/haptics-provider";
 import { useGeolocation } from "@/lib/hooks/use-geolocation";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { motion } from "motion/react";
 import { softSpring } from "@/lib/motion";
 
@@ -11,7 +12,10 @@ type LocateButtonProps = {
 };
 
 export const LocateButton = ({ onLocate }: LocateButtonProps) => {
+  const haptics = useAppHaptics();
   const { lat, lng, loading, error, requestLocation } = useGeolocation();
+  const previousLocationRef = useRef<string | null>(null);
+  const previousErrorRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (lat && lng) {
@@ -19,11 +23,31 @@ export const LocateButton = ({ onLocate }: LocateButtonProps) => {
     }
   }, [lat, lng, onLocate]);
 
+  useEffect(() => {
+    if (lat === null || lng === null) return;
+
+    const nextLocation = `${lat}:${lng}`;
+    if (previousLocationRef.current === nextLocation) return;
+
+    previousLocationRef.current = nextLocation;
+    haptics.locateSuccess();
+  }, [haptics, lat, lng]);
+
+  useEffect(() => {
+    if (!error || previousErrorRef.current === error) return;
+
+    previousErrorRef.current = error;
+    haptics.warning();
+  }, [error, haptics]);
+
   const hasLocation = lat !== null && lng !== null;
 
   return (
     <motion.button
-      onClick={requestLocation}
+      onClick={() => {
+        haptics.locateRequest();
+        requestLocation();
+      }}
       disabled={loading}
       aria-label="Find my location"
       tabIndex={0}

@@ -1,6 +1,7 @@
 "use client";
 
 import { STANDARD_FUEL_TYPES } from "@/lib/data/fuel-types";
+import { useAppHaptics } from "@/components/haptics-provider";
 import type { FuelTypeId } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Zap, Atom } from "lucide-react";
@@ -24,12 +25,18 @@ export const FuelFilter = ({
   showEv,
   onEvChange,
 }: FuelFilterProps) => {
+  const haptics = useAppHaptics();
+
   return (
     <div className="absolute top-4 left-4 right-4 z-[1000] flex items-center gap-2 overflow-x-auto pb-1 md:left-auto md:right-4 md:max-w-md">
       {STANDARD_FUEL_TYPES.map((fuel) => (
         <motion.button
           key={fuel.id}
-          onClick={() => onFuelChange(fuel.id)}
+          onClick={() => {
+            if (selectedFuel === fuel.id) return;
+            haptics.toggleChange(true);
+            onFuelChange(fuel.id);
+          }}
           aria-label={`Filter by ${fuel.label}`}
           aria-pressed={selectedFuel === fuel.id}
           tabIndex={0}
@@ -50,7 +57,11 @@ export const FuelFilter = ({
       <div className="mx-0.5 h-5 w-px shrink-0 bg-border" />
 
       <motion.button
-        onClick={() => onEvChange(!showEv)}
+        onClick={() => {
+          const nextValue = !showEv;
+          haptics.toggleChange(nextValue);
+          onEvChange(nextValue);
+        }}
         aria-label="Toggle EV charging stations"
         aria-pressed={showEv}
         tabIndex={0}
@@ -69,7 +80,11 @@ export const FuelFilter = ({
       </motion.button>
 
       <motion.button
-        onClick={() => onHydrogenChange(!showHydrogen)}
+        onClick={() => {
+          const nextValue = !showHydrogen;
+          haptics.toggleChange(nextValue);
+          onHydrogenChange(nextValue);
+        }}
         aria-label="Toggle hydrogen stations"
         aria-pressed={showHydrogen}
         tabIndex={0}

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { useTheme } from "next-themes";
 import { X, Heart, Copy, Check, Coins, Sparkles } from "lucide-react";
+import { useAppHaptics } from "@/components/haptics-provider";
 import { useLocalStorage } from "@/lib/hooks/use-local-storage";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "motion/react";
@@ -13,6 +14,7 @@ const BTC_ADDRESS = "bc1pns9f80z2s3t4xyqx0sec9v63jfuxwhvjyxetfar3hwv7h0qke90qjcx
 const BTC_URI = `bitcoin:${BTC_ADDRESS}`;
 
 export const DonatePopup = ({ compact = false }: { compact?: boolean }) => {
+  const haptics = useAppHaptics();
   const { resolvedTheme } = useTheme();
   const [dismissed, setDismissed] = useLocalStorage("servo-donate-dismissed", false);
   const [expanded, setExpanded] = useState(false);
@@ -26,19 +28,21 @@ export const DonatePopup = ({ compact = false }: { compact?: boolean }) => {
   }, [dismissed]);
 
   const handleDismiss = useCallback(() => {
+    haptics.dismiss();
     setVisible(false);
     setDismissed(true);
-  }, [setDismissed]);
+  }, [haptics, setDismissed]);
 
   const handleCopy = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(BTC_ADDRESS);
+      haptics.copy();
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // fallback: ignored
+      haptics.warning();
     }
-  }, []);
+  }, [haptics]);
 
   if (!visible) return null;
 
@@ -58,7 +62,10 @@ export const DonatePopup = ({ compact = false }: { compact?: boolean }) => {
             )}
           >
             <motion.button
-              onClick={() => setExpanded(true)}
+              onClick={() => {
+                haptics.selection();
+                setExpanded(true);
+              }}
               whileHover={{ y: -1 }}
               whileTap={{ scale: 0.98 }}
               transition={quickFade}
@@ -102,7 +109,10 @@ export const DonatePopup = ({ compact = false }: { compact?: boolean }) => {
             exit={{ opacity: 0 }}
             transition={quickFade}
             className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/24 backdrop-blur-sm"
-            onClick={() => setExpanded(false)}
+            onClick={() => {
+              haptics.dismiss();
+              setExpanded(false);
+            }}
           >
             <motion.div
               initial={fadeUp.initial}
@@ -133,7 +143,10 @@ export const DonatePopup = ({ compact = false }: { compact?: boolean }) => {
                   </div>
                 </div>
                 <button
-                  onClick={() => setExpanded(false)}
+                  onClick={() => {
+                    haptics.dismiss();
+                    setExpanded(false);
+                  }}
                   className="rounded-full p-1 transition-colors hover:bg-muted"
                   aria-label="Close donation popup"
                   tabIndex={0}
@@ -162,6 +175,7 @@ export const DonatePopup = ({ compact = false }: { compact?: boolean }) => {
                 <motion.a
                   href={BTC_URI}
                   aria-label="Open Bitcoin wallet"
+                  onClick={() => haptics.success()}
                   whileHover={{ y: -2, scale: 1.01 }}
                   transition={softSpring}
                   className="relative rounded-[1.6rem]"

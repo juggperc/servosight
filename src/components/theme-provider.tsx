@@ -3,6 +3,7 @@
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { MotionConfig } from "motion/react";
 import { appleSpring } from "@/lib/motion";
+import { HapticsProvider } from "@/components/haptics-provider";
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -13,7 +14,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
         enableSystem
         disableTransitionOnChange
       >
-        {children}
+        <HapticsProvider>{children}</HapticsProvider>
       </NextThemesProvider>
     </MotionConfig>
   );

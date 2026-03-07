@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import {
   CircleMarker,
   MapContainer,
@@ -19,6 +19,7 @@ import { FuelFilter } from "./fuel-filter";
 import { formatPriceCents } from "@/lib/utils";
 import { useLocalStorage } from "@/lib/hooks/use-local-storage";
 import { FreshnessFilterBar } from "@/components/filters/freshness-filter-bar";
+import { useAppHaptics } from "@/components/haptics-provider";
 import { filterStationsByFreshness } from "@/lib/freshness";
 import { BellRing } from "lucide-react";
 
@@ -171,6 +172,7 @@ const ClusterMarker = ({
 };
 
 export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }: MapViewProps) => {
+  const haptics = useAppHaptics();
   const [stations, setStations] = useState<StationWithPrices[]>([]);
   const [selectedFuel, setSelectedFuel] = useState<FuelTypeId>("u91");
   const [showHydrogen, setShowHydrogen] = useState(false);
@@ -184,6 +186,7 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
     zoom: DEFAULT_ZOOM,
     bounds: null,
   });
+  const previousZoomRef = useRef<number | null>(null);
 
   const fetchStations = useCallback(
     async (signal?: AbortSignal) => {
@@ -284,12 +287,13 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
     }
 
     if (nextToasts.length) {
+      haptics.success();
       setAlertToasts((previous) => {
         const existingIds = new Set(previous.map((toast) => toast.id));
         return [...previous, ...nextToasts.filter((toast) => !existingIds.has(toast.id))];
       });
     }
-  }, [priceAlerts, setPriceAlerts, stations]);
+  }, [haptics, priceAlerts, setPriceAlerts, stations]);
 
   useEffect(() => {
     if (!alertToasts.length) return;
@@ -302,6 +306,19 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
 
     return () => timers.forEach((timer) => window.clearTimeout(timer));
   }, [alertToasts]);
+
+  useEffect(() => {
+    if (previousZoomRef.current === null) {
+      previousZoomRef.current = viewport.zoom;
+      return;
+    }
+
+    const delta = viewport.zoom - previousZoomRef.current;
+    if (delta !== 0) {
+      haptics.zoomDial(delta);
+      previousZoomRef.current = viewport.zoom;
+    }
+  }, [haptics, viewport.zoom]);
 
   const handleSaveAlert = useCallback(
     (station: StationWithPrices, fuelType: FuelTypeId, threshold: number) => {
@@ -450,13 +467,14 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
 
   const handleClusterSelect = useCallback(
     (cluster: StationCluster) => {
+      haptics.clusterPress();
       setFlyTo({
         lat: cluster.lat,
         lng: cluster.lng,
         zoom: Math.min(viewport.zoom + 2, 13),
       });
     },
-    [viewport.zoom]
+    [haptics, viewport.zoom]
   );
 
   return (

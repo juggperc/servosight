@@ -10,6 +10,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import { useAppHaptics } from "@/components/haptics-provider";
 import {
   Select,
   SelectContent,
@@ -21,7 +22,7 @@ import { Slider } from "@/components/ui/slider";
 import { STANDARD_FUEL_TYPES } from "@/lib/data/fuel-types";
 import type { FuelTypeId } from "@/lib/types";
 import { useLocalStorage } from "@/lib/hooks/use-local-storage";
-import { Moon, Sun, Fuel, Radius, Heart, Copy, Check } from "lucide-react";
+import { Moon, Sun, Fuel, Radius, Heart, Copy, Check, Smartphone } from "lucide-react";
 import { useState, useCallback } from "react";
 import { QRCodeSVG } from "qrcode.react";
 
@@ -34,6 +35,7 @@ type SettingsSheetProps = {
 };
 
 export const SettingsSheet = ({ open, onOpenChange }: SettingsSheetProps) => {
+  const haptics = useAppHaptics();
   const { resolvedTheme, setTheme } = useTheme();
   const [defaultFuel, setDefaultFuel] = useLocalStorage<FuelTypeId>("servo-default-fuel", "u91");
   const [defaultRadius, setDefaultRadius] = useLocalStorage<number>("servo-default-radius", 10);
@@ -43,18 +45,20 @@ export const SettingsSheet = ({ open, onOpenChange }: SettingsSheetProps) => {
   const isDark = resolvedTheme === "dark";
 
   const handleThemeToggle = () => {
+    haptics.toggleChange(!isDark);
     setTheme(isDark ? "light" : "dark");
   };
 
   const handleCopyBtc = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(BTC_ADDRESS);
+      haptics.copy();
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // ignored
+      haptics.warning();
     }
-  }, []);
+  }, [haptics]);
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
@@ -83,6 +87,28 @@ export const SettingsSheet = ({ open, onOpenChange }: SettingsSheetProps) => {
 
           <Separator />
 
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Smartphone className="h-5 w-5" />
+              <div>
+                <Label className="text-sm font-medium">Haptic Feedback</Label>
+                <p className="text-xs text-muted-foreground">
+                  Fine pulses for map and control interactions
+                </p>
+              </div>
+            </div>
+            <Switch
+              checked={haptics.enabled}
+              onCheckedChange={(checked) => {
+                haptics.setEnabled(checked);
+                haptics.toggleChange(checked);
+              }}
+              aria-label="Toggle haptic feedback"
+            />
+          </div>
+
+          <Separator />
+
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <Fuel className="h-5 w-5" />
@@ -93,7 +119,13 @@ export const SettingsSheet = ({ open, onOpenChange }: SettingsSheetProps) => {
                 </p>
               </div>
             </div>
-            <Select value={defaultFuel} onValueChange={(v) => setDefaultFuel(v as FuelTypeId)}>
+            <Select
+              value={defaultFuel}
+              onValueChange={(v) => {
+                haptics.selection();
+                setDefaultFuel(v as FuelTypeId);
+              }}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -122,6 +154,7 @@ export const SettingsSheet = ({ open, onOpenChange }: SettingsSheetProps) => {
             <Slider
               value={[defaultRadius]}
               onValueChange={(v) => setDefaultRadius(v[0])}
+              onValueCommit={() => haptics.selection()}
               min={5}
               max={100}
               step={5}
@@ -137,7 +170,10 @@ export const SettingsSheet = ({ open, onOpenChange }: SettingsSheetProps) => {
 
           <div className="space-y-3">
             <button
-              onClick={() => setShowQr((v) => !v)}
+              onClick={() => {
+                haptics.toggleChange(!showQr);
+                setShowQr((v) => !v);
+              }}
               className="flex w-full items-center gap-3 text-left"
               aria-label="Support ServoSight with Bitcoin"
               tabIndex={0}
@@ -152,7 +188,12 @@ export const SettingsSheet = ({ open, onOpenChange }: SettingsSheetProps) => {
             </button>
             {showQr && (
               <div className="flex flex-col items-center gap-3 rounded-xl bg-muted/30 p-4">
-                <a href={BTC_URI} className="rounded-xl bg-white p-2.5 shadow-sm ring-1 ring-border" aria-label="Open Bitcoin wallet">
+                <a
+                  href={BTC_URI}
+                  className="rounded-xl bg-white p-2.5 shadow-sm ring-1 ring-border"
+                  aria-label="Open Bitcoin wallet"
+                  onClick={() => haptics.success()}
+                >
                   <QRCodeSVG
                     value={BTC_URI}
                     size={140}

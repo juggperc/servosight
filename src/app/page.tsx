@@ -10,6 +10,7 @@ import { SettingsSheet } from "@/components/sheets/settings-sheet";
 import { NavigationSheet } from "@/components/sheets/navigation-sheet";
 import { IOSPrompt } from "@/components/onboarding/ios-prompt";
 import { DonatePopup } from "@/components/donate-popup";
+import { useAppHaptics } from "@/components/haptics-provider";
 import type { RouteData, StationWithPrices } from "@/lib/types";
 import { fetchBrowserRoute, getActiveStepIndex } from "@/lib/browser-route";
 import { buildLocalRoute } from "@/lib/local-satnav";
@@ -29,8 +30,10 @@ const HomePage = () => {
   const [navLocation, setNavLocation] = useState<{ lat: number; lng: number } | null>(null);
   const routeAbortRef = useRef<AbortController | null>(null);
   const isOverlayDense = navigationOpen || routing || selectedStation !== null;
+  const haptics = useAppHaptics();
 
   const handleTabChange = useCallback((tab: TabId) => {
+    haptics.tabChange();
     setActiveTab(tab);
 
     setSubmitOpen(false);
@@ -55,14 +58,17 @@ const HomePage = () => {
       default:
         break;
     }
-  }, []);
+  }, [haptics]);
 
   const handleDrawerClose = useCallback((setter: (open: boolean) => void) => {
     return (open: boolean) => {
       setter(open);
-      if (!open) setActiveTab("map");
+      if (!open) {
+        haptics.dismiss();
+        setActiveTab("map");
+      }
     };
-  }, []);
+  }, [haptics]);
 
   const getCurrentLocation = useCallback(async (): Promise<{ lat: number; lng: number }> => {
     if (!navigator.geolocation) {
@@ -91,6 +97,7 @@ const HomePage = () => {
   }, []);
 
   const handleClearRoute = useCallback(() => {
+    haptics.dismiss();
     routeAbortRef.current?.abort();
     routeAbortRef.current = null;
     setRouting(false);
@@ -100,7 +107,7 @@ const HomePage = () => {
     setNavigationOpen(false);
     setCurrentStepIndex(0);
     setNavLocation(null);
-  }, []);
+  }, [haptics]);
 
   const handleStartRoute = useCallback(
     async (stationOverride?: StationWithPrices) => {
@@ -111,6 +118,7 @@ const HomePage = () => {
       setRouting(true);
       setRouteError(null);
       setNavigationOpen(true);
+      haptics.selection();
       routeAbortRef.current?.abort();
       const controller = new AbortController();
       routeAbortRef.current = controller;
@@ -128,11 +136,13 @@ const HomePage = () => {
 
         setCurrentStepIndex(0);
         setActiveRoute(route satisfies RouteData);
+        haptics.success();
       } catch (error) {
         if (controller.signal.aborted) return;
 
         setRouteError(error instanceof Error ? error.message : "Failed to build route");
         setActiveRoute(null);
+        haptics.error();
       } finally {
         if (routeAbortRef.current === controller) {
           routeAbortRef.current = null;
@@ -140,7 +150,7 @@ const HomePage = () => {
         setRouting(false);
       }
     },
-    [getCurrentLocation, navLocation, selectedStation]
+    [getCurrentLocation, haptics, navLocation, selectedStation]
   );
 
   const handleStationSelect = useCallback(
