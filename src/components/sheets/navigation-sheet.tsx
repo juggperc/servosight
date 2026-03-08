@@ -210,6 +210,38 @@ export const NavigationSheet = ({
                 </div>
               </div>
 
+              {station && (
+                <div className="flex items-center gap-2 mb-5">
+                  <a
+                    href={`https://maps.apple.com/?daddr=${station.lat},${station.lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-1 items-center justify-center gap-2 rounded-full bg-white/10 px-4 py-2.5 text-[11px] font-bold text-white transition-colors hover:bg-white/20"
+                  >
+                    <img src="/icons/apple-maps.svg" alt="Apple Maps" className="h-[18px] w-[18px]" />
+                    Maps
+                  </a>
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${station.lat},${station.lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-1 items-center justify-center gap-2 rounded-full bg-white/10 px-4 py-2.5 text-[11px] font-bold text-white transition-colors hover:bg-white/20"
+                  >
+                    <img src="/icons/google-maps.svg" alt="Google Maps" className="h-[18px] w-[18px]" />
+                    Google
+                  </a>
+                  <a
+                    href={`https://waze.com/ul?ll=${station.lat},${station.lng}&navigate=yes`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-1 items-center justify-center gap-2 rounded-full bg-white/10 px-4 py-2.5 text-[11px] font-bold text-white transition-colors hover:bg-white/20"
+                  >
+                    <img src="/icons/waze.svg" alt="Waze" className="h-[18px] w-[18px]" />
+                    Waze
+                  </a>
+                </div>
+              )}
+
               <div className="space-y-3">
                 {routeError ? (
                   <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4">
