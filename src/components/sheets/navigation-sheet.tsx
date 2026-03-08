@@ -60,6 +60,7 @@ export const NavigationSheet = ({
   onClearRoute,
 }: NavigationSheetProps) => {
   const [expanded, setExpanded] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // Auto-collapse when inactive/routing finishes, auto-expand on error
   useEffect(() => {
@@ -211,34 +212,61 @@ export const NavigationSheet = ({
               </div>
 
               {station && (
-                <div className="flex items-center gap-2 mb-5">
-                  <a
-                    href={`https://maps.apple.com/?daddr=${station.lat},${station.lng}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex flex-1 items-center justify-center gap-2 rounded-full bg-white/10 px-4 py-2.5 text-[11px] font-bold text-white transition-colors hover:bg-white/20"
-                  >
-                    <img src="/icons/apple-maps.svg" alt="Apple Maps" className="h-[18px] w-[18px]" />
-                    Maps
-                  </a>
-                  <a
-                    href={`https://www.google.com/maps/dir/?api=1&destination=${station.lat},${station.lng}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex flex-1 items-center justify-center gap-2 rounded-full bg-white/10 px-4 py-2.5 text-[11px] font-bold text-white transition-colors hover:bg-white/20"
-                  >
-                    <img src="/icons/google-maps.svg" alt="Google Maps" className="h-[18px] w-[18px]" />
-                    Google
-                  </a>
-                  <a
-                    href={`https://waze.com/ul?ll=${station.lat},${station.lng}&navigate=yes`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex flex-1 items-center justify-center gap-2 rounded-full bg-white/10 px-4 py-2.5 text-[11px] font-bold text-white transition-colors hover:bg-white/20"
-                  >
-                    <img src="/icons/waze.svg" alt="Waze" className="h-[18px] w-[18px]" />
-                    Waze
-                  </a>
+                <div className="relative mb-5">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        haptics.selection();
+                        setMenuOpen(!menuOpen);
+                      }}
+                      className="flex flex-1 items-center justify-center gap-2 rounded-full bg-blue-500 hover:bg-blue-600 px-4 py-3 text-sm font-bold text-white transition-colors"
+                    >
+                      <Navigation className="h-4 w-4" />
+                      Navigate
+                    </button>
+                  </div>
+                  <AnimatePresence>
+                    {menuOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                        transition={softSpring}
+                        className="absolute left-0 top-full mt-2 w-full overflow-hidden rounded-2xl bg-zinc-900 shadow-xl ring-1 ring-white/10 z-10"
+                      >
+                        <div className="flex flex-col">
+                          <a
+                            href={`https://maps.apple.com/?daddr=${station.lat},${station.lng}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => setMenuOpen(false)}
+                            className="flex items-center px-4 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/5 border-b border-white/5"
+                          >
+                            Apple Maps
+                          </a>
+                          <a
+                            href={`https://www.google.com/maps/dir/?api=1&destination=${station.lat},${station.lng}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => setMenuOpen(false)}
+                            className="flex items-center px-4 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/5 border-b border-white/5"
+                          >
+                            Google Maps
+                          </a>
+                          <a
+                            href={`https://waze.com/ul?ll=${station.lat},${station.lng}&navigate=yes`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => setMenuOpen(false)}
+                            className="flex items-center px-4 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/5"
+                          >
+                            Waze
+                          </a>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               )}
 

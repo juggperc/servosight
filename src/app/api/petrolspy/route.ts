@@ -19,22 +19,52 @@ const FUEL_TYPE_MAP: Record<string, FuelTypeId> = {
   LPG: "lpg",
 };
 
-const MAX_RETRIES = 2;
-const RETRY_DELAY_MS = 300;
+const MAX_RETRIES = 3;
 
-async function fetchWithRetry(url: string, init: RequestInit, retries = MAX_RETRIES): Promise<Response> {
+const USER_AGENTS = [
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Mobile/15E148 Safari/604.1",
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 17_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3 Mobile/15E148 Safari/604.1",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0",
+];
+
+const getRandomUserAgent = () => USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+
+async function fetchWithRetry(url: string, baseInit: RequestInit, retries = MAX_RETRIES): Promise<Response> {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
+      // Rotate headers per attempt to avoid fingerprint bans
+      const init: RequestInit = {
+        ...baseInit,
+        headers: {
+          ...baseInit.headers,
+          "User-Agent": getRandomUserAgent(),
+          "Accept": "application/json, text/plain, */*",
+          "Accept-Language": "en-AU,en;q=0.9,en-GB;q=0.8,en-US;q=0.7",
+          "Sec-Fetch-Dest": "empty",
+          "Sec-Fetch-Mode": "cors",
+          "Sec-Fetch-Site": "same-origin",
+          "Pragma": "no-cache",
+          "Cache-Control": "no-cache",
+        }
+      };
+
       const res = await fetch(url, init);
       if (res.ok) return res;
+
+      // If we are rate limited or server error, backoff and try again.
       if (attempt < retries && (res.status >= 500 || res.status === 429 || res.status === 403)) {
-        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS * (attempt + 1)));
+        // Exponential backoff: 500ms, 1500ms, 3500ms
+        const backoffDelay = 500 * Math.pow(attempt + 1, 2);
+        await new Promise((r) => setTimeout(r, backoffDelay));
         continue;
       }
       return res;
     } catch (err) {
       if (attempt < retries) {
-        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS * (attempt + 1)));
+        const backoffDelay = 500 * Math.pow(attempt + 1, 2);
+        await new Promise((r) => setTimeout(r, backoffDelay));
         continue;
       }
       throw err;
