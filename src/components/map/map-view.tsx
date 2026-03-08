@@ -141,24 +141,23 @@ const ClusterMarker = memo(({
       ? `<span class="cluster-marker__price">from ${formatPriceCents(cluster.minPrice)}</span>`
       : `<span class="cluster-marker__price">tap to zoom</span>`;
 
-  const icon = useMemo(
-    () =>
-      L.divIcon({
-        className: "cluster-marker-root",
-        html: `
-          <div class="cluster-marker" style="width:${size}px;height:${size}px;">
-            <span class="cluster-marker__pulse"></span>
-            <span class="cluster-marker__core">
-              <span class="cluster-marker__count">${cluster.count > 99 ? "99+" : cluster.count}</span>
-              ${priceLabel}
-            </span>
+  const icon = useMemo(() => {
+    // Add logic to style the cluster differently based on average/minimum prices inside it
+    // If the cluster has a nice minimum price, make it stand out a bit more with a gradient or distinct ring.
+    const isCheap = cluster.minPrice !== undefined && cluster.minPrice < 1700; // Arbitrary "cheap" metric just for visual pop
+
+    return L.divIcon({
+      className: "cluster-marker-root",
+      html: `
+          <div class="cluster-marker shadow-lg backdrop-blur-md transition-transform duration-300" style="width:${size}px;height:${size}px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; background: ${isCheap ? 'rgba(34, 197, 94, 0.95)' : 'rgba(24, 24, 27, 0.95)'}; border: 1.5px solid ${isCheap ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.1)'}; color: white; flex-direction: column;">
+            <span style="font-size: ${size > 62 ? '20px' : '16px'}; font-weight: 900; letter-spacing: -0.05em; line-height: 1;">${cluster.count > 99 ? "99+" : cluster.count}</span>
+            ${cluster.minPrice !== undefined ? `<span style="font-size: 10px; font-weight: 700; opacity: 0.8; letter-spacing: 0.05em; margin-top: 2px;">from ${formatPriceCents(cluster.minPrice)}</span>` : ''}
           </div>
         `,
-        iconSize: [size, size],
-        iconAnchor: [size / 2, size / 2],
-      }),
-    [cluster.count, priceLabel, size]
-  );
+      iconSize: [size, size],
+      iconAnchor: [size / 2, size / 2],
+    });
+  }, [cluster.count, cluster.minPrice, size]);
 
   return (
     <Marker
@@ -609,14 +608,6 @@ export const MapView = ({ onStationSelect, navLocation, compactOverlay = false }
       </div>
 
       <LocateButton onLocate={handleLocate} />
-
-      {countrywideMode && petrolspyError && (
-        <div className="pointer-events-auto absolute bottom-[13rem] left-4 z-[1000] flex flex-col gap-1 md:bottom-32 md:left-4">
-          <div className="bg-black/40 backdrop-blur-md ring-1 ring-white/10 max-w-[200px] rounded-[14px] px-2.5 py-1.5 text-[10px] text-amber-500 font-medium">
-            Live Feed: {petrolspyError}
-          </div>
-        </div>
-      )}
 
 
 
