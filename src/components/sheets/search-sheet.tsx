@@ -24,6 +24,8 @@ import { formatPriceCents } from "@/lib/utils";
 import { motion } from "motion/react";
 import { softSpring } from "@/lib/motion";
 import { StationCard } from "@/components/cards/station-card";
+import { NationalTrendGraph } from "@/components/ui/national-trend-graph";
+import type { DailyAverage } from "@/lib/kv";
 
 type SearchSheetProps = {
   open: boolean;
@@ -36,6 +38,11 @@ export const SearchSheet = ({ open, onOpenChange }: SearchSheetProps) => {
   const [fuelType, setFuelType] = useState<FuelTypeId>("u91");
   const [radius, setRadius] = useState(15);
   const [searching, setSearching] = useState(false);
+
+  // National Trend State
+  const [nationalHistory, setNationalHistory] = useState<DailyAverage[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
 
   // Smart Route State
   const [smartRouteOpen, setSmartRouteOpen] = useState(false);
@@ -96,6 +103,31 @@ export const SearchSheet = ({ open, onOpenChange }: SearchSheetProps) => {
       handleSearch();
     }
   }, [lat, lng, open, handleSearch]);
+
+  useEffect(() => {
+    if (!open) return;
+    let isMounted = true;
+    const fetchHistory = async () => {
+      setHistoryLoading(true);
+      setHistoryError(null);
+      try {
+        const res = await fetch(`/api/history/national?fuelType=${fuelType}`);
+        const data = await res.json();
+        if (isMounted) {
+          if (data.error) setHistoryError(data.error);
+          else setNationalHistory(data.history || []);
+        }
+      } catch (err) {
+        if (isMounted) setHistoryError("Failed to load history");
+      } finally {
+        if (isMounted) setHistoryLoading(false);
+      }
+    };
+    fetchHistory();
+    return () => {
+      isMounted = false;
+    };
+  }, [fuelType, open]);
 
   const cycleData = useMemo(() => {
     const prices = stations.map(s => s.prices[fuelType]?.price).filter(Boolean) as number[];
@@ -240,6 +272,13 @@ export const SearchSheet = ({ open, onOpenChange }: SearchSheetProps) => {
                   <span>High: {formatPriceCents(cycleData.max)}</span>
                 </div>
               </div>
+
+              {/* NATIONAL TREND GRAPH */}
+              <NationalTrendGraph
+                data={nationalHistory}
+                isLoading={historyLoading}
+                error={historyError}
+              />
 
               {/* SMART ROUTE CARD */}
               <div className="glass-panel relative rounded-[2rem] p-5 overflow-hidden ring-1 ring-white/10">
