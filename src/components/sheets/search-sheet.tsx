@@ -219,6 +219,17 @@ export const SearchSheet = ({ open, onOpenChange }: SearchSheetProps) => {
             </div>
           )}
 
+          {/* NATIONAL TREND GRAPH - Always show if we have location */}
+          {lat && lng && (
+            <div className="mb-6">
+              <NationalTrendGraph
+                data={nationalHistory}
+                isLoading={historyLoading}
+                error={historyError}
+              />
+            </div>
+          )}
+
           {cycleData && !searching && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={softSpring} className="space-y-6">
 
@@ -272,13 +283,6 @@ export const SearchSheet = ({ open, onOpenChange }: SearchSheetProps) => {
                   <span>High: {formatPriceCents(cycleData.max)}</span>
                 </div>
               </div>
-
-              {/* NATIONAL TREND GRAPH */}
-              <NationalTrendGraph
-                data={nationalHistory}
-                isLoading={historyLoading}
-                error={historyError}
-              />
 
               {/* SMART ROUTE CARD */}
               <div className="glass-panel relative rounded-[2rem] p-5 overflow-hidden ring-1 ring-white/10">
