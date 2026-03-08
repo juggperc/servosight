@@ -142,20 +142,19 @@ const ClusterMarker = memo(({
       : `<span class="cluster-marker__price">tap to zoom</span>`;
 
   const icon = useMemo(() => {
-    // Add logic to style the cluster differently based on average/minimum prices inside it
-    // If the cluster has a nice minimum price, make it stand out a bit more with a gradient or distinct ring.
-    const isCheap = cluster.minPrice !== undefined && cluster.minPrice < 1700; // Arbitrary "cheap" metric just for visual pop
+    const isCheap = cluster.minPrice !== undefined && cluster.minPrice < 1700;
+    const hasPrice = cluster.minPrice !== undefined;
 
     return L.divIcon({
       className: "cluster-marker-root",
       html: `
-          <div class="cluster-marker shadow-lg backdrop-blur-md transition-transform duration-300" style="width:${size}px;height:${size}px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; background: ${isCheap ? 'rgba(34, 197, 94, 0.95)' : 'rgba(24, 24, 27, 0.95)'}; border: 1.5px solid ${isCheap ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.1)'}; color: white; flex-direction: column;">
-            <span style="font-size: ${size > 62 ? '20px' : '16px'}; font-weight: 900; letter-spacing: -0.05em; line-height: 1;">${cluster.count > 99 ? "99+" : cluster.count}</span>
-            ${cluster.minPrice !== undefined ? `<span style="font-size: 10px; font-weight: 700; opacity: 0.8; letter-spacing: 0.05em; margin-top: 2px;">from ${formatPriceCents(cluster.minPrice)}</span>` : ''}
+          <div class="cluster-marker shadow-lg backdrop-blur-md transition-transform duration-300" style="padding: 6px 14px; border-radius: 9999px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: ${isCheap ? 'rgba(34, 197, 94, 0.85)' : 'rgba(24, 24, 27, 0.85)'}; border: 1px solid ${isCheap ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)'}; color: white; box-shadow: ${isCheap ? '0 8px 20px rgba(34, 197, 94, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3)' : '0 8px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15)'}; font-family: var(--font-sans), sans-serif;">
+            <span style="font-size: 14px; font-weight: 800; letter-spacing: -0.02em; line-height: 1;">${cluster.count > 99 ? "99+" : cluster.count}</span>
+            ${hasPrice ? `<div style="width: 1px; height: 12px; background: rgba(255,255,255,0.25);"></div><span style="font-size: 12px; font-weight: 700; opacity: 0.9; letter-spacing: 0.02em; line-height: 1;">from ${formatPriceCents(cluster.minPrice!)}</span>` : ''}
           </div>
         `,
-      iconSize: [size, size],
-      iconAnchor: [size / 2, size / 2],
+      iconSize: [hasPrice ? 120 : 60, 32],
+      iconAnchor: [hasPrice ? 60 : 30, 16],
     });
   }, [cluster.count, cluster.minPrice, size]);
 
