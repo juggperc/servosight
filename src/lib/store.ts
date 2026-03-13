@@ -6,6 +6,13 @@ import {
   type NswStation,
 } from "@/lib/nsw-fuel-api";
 import { fetchWaPricesBundle, type WaStation } from "@/lib/wa-fuel-api";
+import {
+  fetchVicPricesBundle,
+  fetchVicBrands,
+  mapVicFuelCode,
+  getVicBrandName,
+  type VicFuelStation,
+} from "@/lib/vic-fuel-api";
 
 // User-submitted prices overlay
 let userPriceReports: PriceReport[] = [];
@@ -19,6 +26,10 @@ let lastNswSync = 0;
 let waStations: Station[] = [];
 let waPricesMap: Map<string, { fuelType: FuelTypeId; price: number; reportedAt: string }[]> = new Map();
 let lastWaSync = 0;
+
+let vicStations: Station[] = [];
+let vicPricesMap: Map<string, { fuelType: FuelTypeId; price: number; reportedAt: string }[]> = new Map();
+let lastVicSync = 0;
 
 let liveDataAvailable = false;
 
@@ -139,11 +150,78 @@ const syncWaData = async (): Promise<void> => {
   lastWaSync = now;
 };
 
+const VIC_SYNC_INTERVAL_MS = 60 * 60 * 1000;
+
+const convertVicStation = (s: VicFuelStation): Station => {
+  const location = s.fuelStation.location;
+  return {
+    id: `vic-${s.fuelStation.id}`,
+    name: s.fuelStation.name,
+    brand: getVicBrandName(s.fuelStation.brandId),
+    address: s.fuelStation.address,
+    suburb: extractSuburb(s.fuelStation.address),
+    state: "VIC",
+    lat: location.latitude ?? 0,
+    lng: location.longitude ?? 0,
+    fuelTypes: [],
+    hasHydrogen: false,
+    hasEv: false,
+  };
+};
+
+const syncVicData = async (): Promise<void> => {
+  const now = Date.now();
+  if (now - lastVicSync < VIC_SYNC_INTERVAL_MS) return;
+
+  await fetchVicBrands();
+  const bundle = await fetchVicPricesBundle();
+
+  if (!bundle?.fuelPriceDetails?.length) {
+    lastVicSync = now;
+    return;
+  }
+
+  const stationMap = new Map<string, Station>();
+  const pMap = new Map<string, { fuelType: FuelTypeId; price: number; reportedAt: string }[]>();
+
+  for (const s of bundle.fuelPriceDetails) {
+    const station = convertVicStation(s);
+    stationMap.set(s.fuelStation.id, station);
+
+    for (const p of s.fuelPrices) {
+      if (!p.isAvailable) continue;
+      
+      const fuelType = mapVicFuelCode(p.fuelType);
+      if (!fuelType) continue;
+
+      if (!station.fuelTypes.includes(fuelType)) {
+        station.fuelTypes.push(fuelType);
+      }
+
+      const stationKey = `vic-${s.fuelStation.id}`;
+      const existing = pMap.get(stationKey) ?? [];
+      existing.push({
+        fuelType,
+        price: Math.round(p.price * 10),
+        reportedAt: p.updatedAt ?? new Date().toISOString(),
+      });
+      pMap.set(stationKey, existing);
+    }
+  }
+
+  vicStations = Array.from(stationMap.values()).filter((s) => s.fuelTypes.length > 0);
+  vicPricesMap = pMap;
+  liveDataAvailable = nswStations.length > 0 || waStations.length > 0 || vicStations.length > 0;
+  lastVicSync = now;
+
+  console.log(`[Store] VIC live sync: ${vicStations.length} stations`);
+};
+
 // ── Public API ──
 
 const getAllStations = async (): Promise<Station[]> => {
-  await Promise.all([syncNswData(), syncWaData()]);
-  return [...nswStations, ...waStations, ...userStations];
+  await Promise.all([syncNswData(), syncWaData(), syncVicData()]);
+  return [...nswStations, ...waStations, ...vicStations, ...userStations];
 };
 
 export const getStation = async (id: string): Promise<Station | undefined> => {
@@ -156,7 +234,7 @@ const getLatestPrices = (
 ): Record<FuelTypeId, { price: number; reportedAt: string } | undefined> => {
   const latest: Record<string, { price: number; reportedAt: string } | undefined> = {};
 
-  const stationPrices = nswPricesMap.get(stationId) || waPricesMap.get(stationId);
+  const stationPrices = nswPricesMap.get(stationId) || waPricesMap.get(stationId) || vicPricesMap.get(stationId);
   if (stationPrices) {
     for (const p of stationPrices) {
       if (!latest[p.fuelType] || new Date(p.reportedAt) > new Date(latest[p.fuelType]!.reportedAt)) {
