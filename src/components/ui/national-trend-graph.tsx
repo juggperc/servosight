@@ -56,7 +56,7 @@ export const NationalTrendGraph = ({ data, isLoading, error, fuelLogoName = "Fue
 
     if (isLoading) {
         return (
-            <div className="glass-panel relative rounded-[2rem] p-5 h-[220px] flex flex-col items-center justify-center space-y-3 ring-1 ring-white/10 animate-pulse">
+            <div className="glass-panel relative h-[220px] rounded-2xl border border-border/50 p-5 flex flex-col items-center justify-center space-y-3 animate-pulse">
                 <LineChart className="h-6 w-6 text-muted-foreground/50" />
                 <p className="text-sm font-medium text-muted-foreground">Loading market trend...</p>
             </div>
@@ -65,7 +65,7 @@ export const NationalTrendGraph = ({ data, isLoading, error, fuelLogoName = "Fue
 
     if (error || !data) {
         return (
-            <div className="glass-panel relative rounded-[2rem] p-5 h-[220px] flex flex-col items-center justify-center space-y-3 ring-1 ring-red-500/20 bg-red-500/5">
+            <div className="glass-panel relative h-[220px] rounded-2xl border border-red-500/30 bg-red-500/5 p-5 flex flex-col items-center justify-center space-y-3">
                 <AlertCircle className="h-6 w-6 text-red-500/80" />
                 <p className="text-sm font-medium text-red-400">Could not load market history</p>
             </div>
@@ -74,7 +74,7 @@ export const NationalTrendGraph = ({ data, isLoading, error, fuelLogoName = "Fue
 
     if (data.length < 2) {
         return (
-            <div className="glass-panel relative rounded-[2rem] p-5 h-[220px] flex flex-col items-center justify-center text-center space-y-2 ring-1 ring-white/10">
+            <div className="glass-panel relative h-[220px] rounded-2xl border border-border/50 p-5 flex flex-col items-center justify-center text-center space-y-2">
                 <LineChart className="h-6 w-6 text-blue-500 mb-1" />
                 <p className="text-sm font-bold text-foreground">Gathering Data</p>
                 <p className="text-xs text-muted-foreground max-w-[200px] leading-relaxed">
@@ -95,7 +95,7 @@ export const NationalTrendGraph = ({ data, isLoading, error, fuelLogoName = "Fue
     const diffStr = diff > 0 ? `${formatPriceCents(diff)}` : "Flat";
 
     return (
-        <div className="glass-panel relative rounded-[2rem] p-5 overflow-hidden ring-1 ring-white/10">
+        <div className="glass-panel relative overflow-hidden rounded-2xl border border-border/50 p-5">
             <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(circle_at_top_right,var(--tw-gradient-stops))] from-white via-transparent to-transparent pointer-events-none" />
 
             <div className="flex items-start justify-between relative z-10">

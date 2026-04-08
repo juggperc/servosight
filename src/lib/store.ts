@@ -96,7 +96,7 @@ const syncNswData = async (): Promise<void> => {
 
   nswStations = Array.from(stationMap.values()).filter((s) => s.fuelTypes.length > 0);
   nswPricesMap = pMap;
-  liveDataAvailable = nswStations.length > 0 || waStations.length > 0;
+  liveDataAvailable = nswStations.length > 0 || waStations.length > 0 || vicStations.length > 0;
   lastNswSync = now;
 
   console.log(`[Store] NSW live sync: ${nswStations.length} stations, ${bundle.prices.length} prices`);
@@ -146,7 +146,7 @@ const syncWaData = async (): Promise<void> => {
 
   waStations = Array.from(stationMap.values()).filter((s) => s.fuelTypes.length > 0);
   waPricesMap = pMap;
-  liveDataAvailable = nswStations.length > 0 || waStations.length > 0;
+  liveDataAvailable = nswStations.length > 0 || waStations.length > 0 || vicStations.length > 0;
   lastWaSync = now;
 };
 
@@ -220,7 +220,14 @@ const syncVicData = async (): Promise<void> => {
 // ── Public API ──
 
 const getAllStations = async (): Promise<Station[]> => {
-  await Promise.all([syncNswData(), syncWaData(), syncVicData()]);
+  const syncResults = await Promise.allSettled([syncNswData(), syncWaData(), syncVicData()]);
+
+  for (const result of syncResults) {
+    if (result.status === "rejected") {
+      console.error("[Store] Failed to sync one data source:", result.reason);
+    }
+  }
+
   return [...nswStations, ...waStations, ...vicStations, ...userStations];
 };
 
