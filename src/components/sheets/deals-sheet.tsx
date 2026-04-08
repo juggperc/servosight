@@ -24,6 +24,7 @@ import { FreshnessFilterBar } from "@/components/filters/freshness-filter-bar";
 import { filterStationsByFreshness } from "@/lib/freshness";
 import { useLocalStorage } from "@/lib/hooks/use-local-storage";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatPriceCents } from "@/lib/utils";
 
 type DealsSheetProps = {
   open: boolean;
@@ -110,8 +111,8 @@ export const DealsSheet = ({ open, onOpenChange }: DealsSheetProps) => {
           .map((s) => s.cheapestPrice)
           .filter((price): price is number => typeof price === "number");
 
-        const min = Math.min(...prices);
-        const max = Math.max(...prices);
+        const min = prices.reduce((lowest, price) => Math.min(lowest, price), Number.POSITIVE_INFINITY);
+        const max = prices.reduce((highest, price) => Math.max(highest, price), Number.NEGATIVE_INFINITY);
         setDealStats({ count: prices.length, min, max, avg });
       } else {
         setDealStats(null);
@@ -203,25 +204,25 @@ export const DealsSheet = ({ open, onOpenChange }: DealsSheetProps) => {
           {!searching && dealStats && (
             <Card className="gap-0 rounded-2xl border border-border/50 py-0">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Fuel aggregation snapshot</CardTitle>
+                <CardTitle className="text-sm">Price summary</CardTitle>
               </CardHeader>
               <CardContent className="pb-4">
                 <div className="grid grid-cols-3 gap-3 text-center">
                   <div className="rounded-xl border border-border/60 bg-muted/30 p-2">
                     <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Low</p>
-                    <p className="font-price text-base font-semibold">{(dealStats.min / 10).toFixed(1)}¢</p>
+                    <p className="font-price text-base font-semibold">{formatPriceCents(dealStats.min)}</p>
                   </div>
                   <div className="rounded-xl border border-border/60 bg-muted/30 p-2">
                     <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Avg</p>
-                    <p className="font-price text-base font-semibold">{(dealStats.avg / 10).toFixed(1)}¢</p>
+                    <p className="font-price text-base font-semibold">{formatPriceCents(dealStats.avg)}</p>
                   </div>
                   <div className="rounded-xl border border-border/60 bg-muted/30 p-2">
                     <p className="text-[10px] uppercase tracking-wide text-muted-foreground">High</p>
-                    <p className="font-price text-base font-semibold">{(dealStats.max / 10).toFixed(1)}¢</p>
+                    <p className="font-price text-base font-semibold">{formatPriceCents(dealStats.max)}</p>
                   </div>
                 </div>
                 <p className="mt-3 text-center text-xs text-muted-foreground">
-                  Based on {dealStats.count} stations after freshness filtering
+                  Based on {dealStats.count} station{dealStats.count === 1 ? "" : "s"} after freshness filtering
                 </p>
               </CardContent>
             </Card>

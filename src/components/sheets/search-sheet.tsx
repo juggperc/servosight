@@ -135,7 +135,8 @@ export const SearchSheet = ({ open, onOpenChange }: SearchSheetProps) => {
           }
         }
       } catch (err) {
-        if (isMounted && !(err instanceof DOMException && err.name === "AbortError")) {
+        if (controller.signal.aborted) return;
+        if (isMounted) {
           setHistoryError("Failed to load history");
           setNationalHistory([]);
         }

@@ -13,8 +13,17 @@ export const isKvConfigured = () => {
     return !!process.env.KV_REST_API_URL && !!process.env.KV_REST_API_TOKEN;
 };
 
-// Key format: national:u91
-const getHistoryKey = (fuelType: FuelTypeId) => `national:${fuelType}`;
+// Legacy key format: national:u91
+const getLegacyHistoryKey = (fuelType: FuelTypeId) => `national:${fuelType}`;
+// Current key format: national:v2:u91 (hash date -> price)
+const getHistoryKey = (fuelType: FuelTypeId) => `national:v2:${fuelType}`;
+
+const toSortedHistory = (entries: DailyAverage[]) => {
+    return entries
+        .filter((entry) => !!entry?.date && Number.isFinite(entry.price))
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .slice(-MAX_HISTORY_DAYS);
+};
 
 export const getNationalHistory = async (fuelType: FuelTypeId): Promise<DailyAverage[]> => {
     if (!isKvConfigured()) {
@@ -24,18 +33,25 @@ export const getNationalHistory = async (fuelType: FuelTypeId): Promise<DailyAve
 
     try {
         const key = getHistoryKey(fuelType);
-        // Returns an array from list, left to right 
-        const history = await kv.lrange<DailyAverage>(key, 0, -1);
+        const hashHistory = await kv.hgetall<Record<string, number | string>>(key);
+        if (hashHistory && Object.keys(hashHistory).length > 0) {
+            const entries: DailyAverage[] = Object.entries(hashHistory).map(([date, value]) => ({
+                date,
+                price: typeof value === "number" ? value : Number.parseInt(value, 10),
+            }));
+            return toSortedHistory(entries);
+        }
+
+        const legacyKey = getLegacyHistoryKey(fuelType);
+        const history = await kv.lrange<DailyAverage>(legacyKey, 0, -1);
         if (!history?.length) return [];
 
         const byDate = new Map<string, DailyAverage>();
         for (const entry of history) {
-            if (entry?.date) {
-                byDate.set(entry.date, entry);
-            }
+            if (entry?.date) byDate.set(entry.date, entry);
         }
 
-        return Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date));
+        return toSortedHistory(Array.from(byDate.values()));
     } catch (err) {
         console.error(`[KV] Failed to fetch history for ${fuelType}:`, err);
         return [];
@@ -51,14 +67,16 @@ export const appendDailyAverage = async (fuelType: FuelTypeId, price: number, da
     try {
         const key = getHistoryKey(fuelType);
 
-        const entry: DailyAverage = { date: dateStr, price };
-        const history = await kv.lrange<DailyAverage>(key, 0, -1);
-        const withoutToday = (history || []).filter((item) => item?.date && item.date !== dateStr);
-        const nextHistory = [...withoutToday, entry].slice(-MAX_HISTORY_DAYS);
+        await kv.hset(key, { [dateStr]: price });
 
-        await kv.del(key);
-        if (nextHistory.length > 0) {
-            await kv.rpush(key, ...nextHistory);
+        const dateKeys = await kv.hkeys(key);
+        if (dateKeys.length > MAX_HISTORY_DAYS) {
+            const overflowDates = [...dateKeys]
+                .sort((a, b) => a.localeCompare(b))
+                .slice(0, dateKeys.length - MAX_HISTORY_DAYS);
+            if (overflowDates.length > 0) {
+                await kv.hdel(key, ...overflowDates);
+            }
         }
 
     } catch (err) {
