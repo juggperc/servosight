@@ -23,10 +23,26 @@ import { Locate, Loader2, Flame } from "lucide-react";
 import { FreshnessFilterBar } from "@/components/filters/freshness-filter-bar";
 import { filterStationsByFreshness } from "@/lib/freshness";
 import { useLocalStorage } from "@/lib/hooks/use-local-storage";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type DealsSheetProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+};
+
+type DealStats = {
+  count: number;
+  min: number;
+  max: number;
+  avg: number;
+};
+
+const mergeStationsById = (stations: StationWithPrices[]) => {
+  const merged = new Map<string, StationWithPrices>();
+  for (const station of stations) {
+    merged.set(station.id, station);
+  }
+  return Array.from(merged.values());
 };
 
 export const DealsSheet = ({ open, onOpenChange }: DealsSheetProps) => {
@@ -37,6 +53,7 @@ export const DealsSheet = ({ open, onOpenChange }: DealsSheetProps) => {
   const [freshness, setFreshness] = useState<FreshnessFilterId>("any");
   const [searching, setSearching] = useState(false);
   const [averagePrice, setAveragePrice] = useState(0);
+  const [dealStats, setDealStats] = useState<DealStats | null>(null);
 
   const [countrywideMode] = useLocalStorage<boolean>("servo-countrywide-mode", true);
 
@@ -45,6 +62,7 @@ export const DealsSheet = ({ open, onOpenChange }: DealsSheetProps) => {
     if (!countrywideMode) {
       setDeals([]);
       setAveragePrice(0);
+      setDealStats(null);
       return;
     }
 
@@ -67,16 +85,16 @@ export const DealsSheet = ({ open, onOpenChange }: DealsSheetProps) => {
       ];
 
       const results = await Promise.allSettled(promises);
-      let combinedStations: StationWithPrices[] = [];
+      const combinedStations: StationWithPrices[] = [];
 
       for (const result of results) {
         if (result.status === "fulfilled" && Array.isArray(result.value)) {
-          combinedStations = [...combinedStations, ...result.value];
+          combinedStations.push(...result.value);
         }
       }
 
       const data = filterStationsByFreshness(
-        combinedStations,
+        mergeStationsById(combinedStations),
         fuelType,
         freshness
       );
@@ -87,6 +105,17 @@ export const DealsSheet = ({ open, onOpenChange }: DealsSheetProps) => {
           ? withPrices.reduce((sum, s) => sum + (s.cheapestPrice ?? 0), 0) / withPrices.length
           : 0;
       setAveragePrice(avg);
+      if (withPrices.length > 0) {
+        const prices = withPrices
+          .map((s) => s.cheapestPrice)
+          .filter((price): price is number => typeof price === "number");
+
+        const min = Math.min(...prices);
+        const max = Math.max(...prices);
+        setDealStats({ count: prices.length, min, max, avg });
+      } else {
+        setDealStats(null);
+      }
 
       withPrices.sort((a, b) => (a.cheapestPrice ?? Infinity) - (b.cheapestPrice ?? Infinity));
       setDeals(withPrices.slice(0, 10));
@@ -169,6 +198,33 @@ export const DealsSheet = ({ open, onOpenChange }: DealsSheetProps) => {
             <div className="flex justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
+          )}
+
+          {!searching && dealStats && (
+            <Card className="gap-0 rounded-2xl border border-border/50 py-0">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm">Fuel aggregation snapshot</CardTitle>
+              </CardHeader>
+              <CardContent className="pb-4">
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div className="rounded-xl border border-border/60 bg-muted/30 p-2">
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Low</p>
+                    <p className="font-price text-base font-semibold">{(dealStats.min / 10).toFixed(1)}¢</p>
+                  </div>
+                  <div className="rounded-xl border border-border/60 bg-muted/30 p-2">
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Avg</p>
+                    <p className="font-price text-base font-semibold">{(dealStats.avg / 10).toFixed(1)}¢</p>
+                  </div>
+                  <div className="rounded-xl border border-border/60 bg-muted/30 p-2">
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">High</p>
+                    <p className="font-price text-base font-semibold">{(dealStats.max / 10).toFixed(1)}¢</p>
+                  </div>
+                </div>
+                <p className="mt-3 text-center text-xs text-muted-foreground">
+                  Based on {dealStats.count} stations after freshness filtering
+                </p>
+              </CardContent>
+            </Card>
           )}
 
           {!searching && deals.length > 0 && (

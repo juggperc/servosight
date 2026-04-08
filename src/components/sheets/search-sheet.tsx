@@ -32,6 +32,14 @@ type SearchSheetProps = {
   onOpenChange: (open: boolean) => void;
 };
 
+const mergeStationsById = (stations: StationWithPrices[]) => {
+  const merged = new Map<string, StationWithPrices>();
+  for (const station of stations) {
+    merged.set(station.id, station);
+  }
+  return Array.from(merged.values());
+};
+
 export const SearchSheet = ({ open, onOpenChange }: SearchSheetProps) => {
   const { lat, lng, loading: geoLoading, error: geoError, requestLocation } = useGeolocation();
   const [stations, setStations] = useState<StationWithPrices[]>([]);
@@ -77,16 +85,17 @@ export const SearchSheet = ({ open, onOpenChange }: SearchSheetProps) => {
       ];
 
       const results = await Promise.allSettled(promises);
-      let combinedStations: StationWithPrices[] = [];
+      const combinedStations: StationWithPrices[] = [];
 
       for (const result of results) {
         if (result.status === "fulfilled" && Array.isArray(result.value)) {
-          combinedStations = [...combinedStations, ...result.value];
+          combinedStations.push(...result.value);
         }
       }
 
-      combinedStations.sort((a, b) => (a.prices[fuelType]?.price ?? Infinity) - (b.prices[fuelType]?.price ?? Infinity));
-      setStations(combinedStations);
+      const uniqueStations = mergeStationsById(combinedStations);
+      uniqueStations.sort((a, b) => (a.prices[fuelType]?.price ?? Infinity) - (b.prices[fuelType]?.price ?? Infinity));
+      setStations(uniqueStations);
     } finally {
       setSearching(false);
     }
@@ -107,18 +116,29 @@ export const SearchSheet = ({ open, onOpenChange }: SearchSheetProps) => {
   useEffect(() => {
     if (!open) return;
     let isMounted = true;
+    const controller = new AbortController();
     const fetchHistory = async () => {
       setHistoryLoading(true);
       setHistoryError(null);
       try {
-        const res = await fetch(`/api/history/national?fuelType=${fuelType}`);
+        const res = await fetch(`/api/history/national?fuelType=${fuelType}`, { signal: controller.signal });
+        if (!res.ok) {
+          throw new Error("Failed to load history");
+        }
         const data = await res.json();
         if (isMounted) {
-          if (data.error) setHistoryError(data.error);
-          else setNationalHistory(data.history || []);
+          if (data.error) {
+            setHistoryError(data.error);
+            setNationalHistory([]);
+          } else {
+            setNationalHistory(data.history || []);
+          }
         }
       } catch (err) {
-        if (isMounted) setHistoryError("Failed to load history");
+        if (isMounted && !(err instanceof DOMException && err.name === "AbortError")) {
+          setHistoryError("Failed to load history");
+          setNationalHistory([]);
+        }
       } finally {
         if (isMounted) setHistoryLoading(false);
       }
@@ -126,6 +146,7 @@ export const SearchSheet = ({ open, onOpenChange }: SearchSheetProps) => {
     fetchHistory();
     return () => {
       isMounted = false;
+      controller.abort();
     };
   }, [fuelType, open]);
 

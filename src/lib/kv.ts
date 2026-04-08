@@ -26,7 +26,16 @@ export const getNationalHistory = async (fuelType: FuelTypeId): Promise<DailyAve
         const key = getHistoryKey(fuelType);
         // Returns an array from list, left to right 
         const history = await kv.lrange<DailyAverage>(key, 0, -1);
-        return history || [];
+        if (!history?.length) return [];
+
+        const byDate = new Map<string, DailyAverage>();
+        for (const entry of history) {
+            if (entry?.date) {
+                byDate.set(entry.date, entry);
+            }
+        }
+
+        return Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date));
     } catch (err) {
         console.error(`[KV] Failed to fetch history for ${fuelType}:`, err);
         return [];
@@ -42,14 +51,15 @@ export const appendDailyAverage = async (fuelType: FuelTypeId, price: number, da
     try {
         const key = getHistoryKey(fuelType);
 
-        // Create new entry
         const entry: DailyAverage = { date: dateStr, price };
+        const history = await kv.lrange<DailyAverage>(key, 0, -1);
+        const withoutToday = (history || []).filter((item) => item?.date && item.date !== dateStr);
+        const nextHistory = [...withoutToday, entry].slice(-MAX_HISTORY_DAYS);
 
-        // Atomically push to the right (end) of the list
-        await kv.rpush(key, entry);
-
-        // Keep only the last MAX_HISTORY_DAYS items (LTRIM offsets are start, stop. We want the last 30 items)
-        await kv.ltrim(key, -MAX_HISTORY_DAYS, -1);
+        await kv.del(key);
+        if (nextHistory.length > 0) {
+            await kv.rpush(key, ...nextHistory);
+        }
 
     } catch (err) {
         console.error(`[KV] Failed to append daily average for ${fuelType}:`, err);

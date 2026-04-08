@@ -22,18 +22,22 @@ export const GET = async (request: Request) => {
             return NextResponse.json({ error: "KV not configured" }, { status: 500 });
         }
 
-        // Capture today's date in YYYY-MM-DD
-        const today = new Intl.DateTimeFormat("en-AU", {
+        const sydneyDateParts = new Intl.DateTimeFormat("en-AU", {
             timeZone: "Australia/Sydney",
             year: "numeric",
             month: "2-digit",
             day: "2-digit",
-        }).format(new Date()).split("/").reverse().join("-"); // Note: sometimes format returns DD/MM/YYYY, safer to build manually
+        }).formatToParts(new Date());
 
-        // Safer date string builder for Sydney time (YYYY-MM-DD)
-        const sydneyTime = new Date().toLocaleString("en-US", { timeZone: "Australia/Sydney" });
-        const d = new Date(sydneyTime);
-        const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        const year = sydneyDateParts.find((part) => part.type === "year")?.value;
+        const month = sydneyDateParts.find((part) => part.type === "month")?.value;
+        const day = sydneyDateParts.find((part) => part.type === "day")?.value;
+
+        if (!year || !month || !day) {
+            return NextResponse.json({ error: "Unable to resolve Sydney date" }, { status: 500 });
+        }
+
+        const dateStr = `${year}-${month}-${day}`;
 
         // 2. Fetch all stations to calculate averages
         const allStations = await queryStations({});
